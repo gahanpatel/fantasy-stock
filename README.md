@@ -1,10 +1,10 @@
 # 📈 Fantasy Stock League
 
 ## 👥 Team Members
-- Gahan 
-- Shloka 
-- Pablo
-- Zach
+- Gahan - Full Stack
+- Shloka - Frontend
+- Pablo - Database
+- Zach - Backend
 
 ---
 
