@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-jose[cryptography]
+passlib[bcrypt]
+supabase
+yfinance
+python-dotenv
+pydantic
