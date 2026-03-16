@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TamidTrades</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef2f7;
+      margin: 30px;
+    }
+
+    h1 {
+      color: #1f2937;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      width: 220px;
+      box-shadow: 0 2px 6px lightgray;
+    }
+
+    .green {
+      color: green;
+    }
+
+    input {
+      padding: 8px;
+      margin-bottom: 10px;
+      width: 220px;
+      display: block;
+    }
+
+    button {
+      padding: 8px 12px;
+      background-color: blue;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>TamidTrades</h1>
+
+  <div class="card">
+    <p><strong>Portfolio Value</strong></p>
+    <!-- API: /portfolio -->
+    <p id="portfolioValue">$127,800</p>
+
+    <!-- API: /portfolio or /analytics -->
+    <p class="green" id="portfolioReturn">+27.8% all-time</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Today's Gain</strong></p>
+    <!-- API: /portfolio -->
+    <p class="green" id="todaysGain">+$1,250</p>
+
+    <!-- API: /portfolio -->
+    <p class="green" id="todaysGainPercent">+0.98% today</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Cash Balance</strong></p>
+    <!-- API: /portfolio -->
+    <p id="cashBalance">$18,420</p>
+    <p>Available buying power</p>
+  </div>
+
+  <div class="card">
+    <p><strong>Sharpe Ratio</strong></p>
+    <!-- API: /analytics -->
+    <p id="sharpeRatio">1.42</p>
+    <p>Risk-adjusted performance</p>
+  </div>
+
+  <h2>Mock Trade</h2>
+
+  <input type="text" id="ticker" placeholder="Ticker">
+  <input type="number" id="shares" placeholder="Shares">
+
+  <!-- API: /trade/buy or /trade/sell -->
+  <button onclick="submitTrade()">Submit Trade</button>
+
+  <p id="message"></p>
+
+  <script>
+    function submitTrade() {
+      let ticker = document.getElementById("ticker").value;
+      let shares = document.getElementById("shares").value;
+      let message = document.getElementById("message");
+
+      if (ticker === "" || shares === "") {
+        message.innerText = "Please fill in both boxes.";
+      } else {
+        message.innerText = "Trade submitted for " + shares + " shares of " + ticker.toUpperCase();
+      }
+    }
+  </script>
+</body>
+</html>
