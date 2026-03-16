@@ -1,160 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TamidTrades</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #eef2f7;
-      margin: 0;
-      padding: 40px;
-      color: #1f2937;
+      margin: 30px;
     }
 
     h1 {
-      margin-bottom: 25px;
-      font-size: 32px;
-    }
-
-    .summary-row {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin-bottom: 35px;
+      color: #1f2937;
     }
 
     .card {
       background-color: white;
-      border-radius: 16px;
-      padding: 20px;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
       width: 220px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    }
-
-    .label {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-
-    .value {
-      font-size: 30px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .subtext {
-      font-size: 14px;
-      color: #4b5563;
+      box-shadow: 0 2px 6px lightgray;
     }
 
     .green {
-      color: #5aa65a;
-    }
-
-    .section {
-      background-color: white;
-      border-radius: 16px;
-      padding: 20px;
-      max-width: 520px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    }
-
-    .section h2 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-size: 22px;
+      color: green;
     }
 
     input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 12px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 14px;
-      box-sizing: border-box;
+      padding: 8px;
+      margin-bottom: 10px;
+      width: 220px;
+      display: block;
     }
 
     button {
-      background-color: #2563eb;
+      padding: 8px 12px;
+      background-color: blue;
       color: white;
       border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
+      border-radius: 5px;
       cursor: pointer;
-      font-size: 14px;
-    }
-
-    button:hover {
-      background-color: #1d4ed8;
-    }
-
-    #message {
-      margin-top: 15px;
-      font-weight: bold;
-    }
-
-    .note {
-      margin-top: 25px;
-      font-size: 14px;
-      color: #6b7280;
-      max-width: 700px;
-      line-height: 1.5;
     }
   </style>
 </head>
 <body>
   <h1>TamidTrades</h1>
 
-  <div class="summary-row">
-    <div class="card">
-      <div class="label">Portfolio Value</div>
-      <!-- BACKEND PLACEHOLDER: GET /portfolio -->
-      <div class="value" id="portfolioValue">$127,800</div>
-      <div class="subtext green" id="portfolioReturn">+27.8% all-time</div>
-    </div>
+  <div class="card">
+    <p><strong>Portfolio Value</strong></p>
+    <!-- API: /portfolio -->
+    <p id="portfolioValue">$127,800</p>
 
-    <div class="card">
-      <div class="label">Today's Gain</div>
-      <!-- BACKEND PLACEHOLDER: GET /portfolio -->
-      <div class="value green" id="todaysGain">+$1,250</div>
-      <div class="subtext green" id="todaysGainPercent">+0.98% today</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Cash Balance</div>
-      <!-- BACKEND PLACEHOLDER: GET /portfolio -->
-      <div class="value" id="cashBalance">$18,420</div>
-      <div class="subtext">Available buying power</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Sharpe Ratio</div>
-      <!-- BACKEND PLACEHOLDER: GET /analytics -->
-      <div class="value" id="sharpeRatio">1.42</div>
-      <div class="subtext">Risk-adjusted performance</div>
-    </div>
+    <!-- API: /portfolio or /analytics -->
+    <p class="green" id="portfolioReturn">+27.8% all-time</p>
   </div>
 
-  <div class="section">
-    <h2>Mock Trade</h2>
+  <div class="card">
+    <p><strong>Today's Gain</strong></p>
+    <!-- API: /portfolio -->
+    <p class="green" id="todaysGain">+$1,250</p>
 
-    <!-- BACKEND PLACEHOLDER: POST /trade/buy or /trade/sell -->
-    <input type="text" id="ticker" placeholder="Enter ticker symbol" />
-    <input type="number" id="shares" placeholder="Enter number of shares" />
-    <button onclick="submitTrade()">Submit Trade</button>
-
-    <p id="message"></p>
+    <!-- API: /portfolio -->
+    <p class="green" id="todaysGainPercent">+0.98% today</p>
   </div>
 
-  <div class="note">
-    This is a frontend prototype. The boxes are designed to match the dashboard image,
-    and the IDs are placeholders for backend data from FastAPI endpoints.
+  <div class="card">
+    <p><strong>Cash Balance</strong></p>
+    <!-- API: /portfolio -->
+    <p id="cashBalance">$18,420</p>
+    <p>Available buying power</p>
   </div>
+
+  <div class="card">
+    <p><strong>Sharpe Ratio</strong></p>
+    <!-- API: /analytics -->
+    <p id="sharpeRatio">1.42</p>
+    <p>Risk-adjusted performance</p>
+  </div>
+
+  <h2>Mock Trade</h2>
+
+  <input type="text" id="ticker" placeholder="Ticker">
+  <input type="number" id="shares" placeholder="Shares">
+
+  <!-- API: /trade/buy or /trade/sell -->
+  <button onclick="submitTrade()">Submit Trade</button>
+
+  <p id="message"></p>
 
   <script>
     function submitTrade() {
@@ -163,38 +95,11 @@
       let message = document.getElementById("message");
 
       if (ticker === "" || shares === "") {
-        message.innerText = "Please enter both a ticker and number of shares.";
-        message.style.color = "red";
+        message.innerText = "Please fill in both boxes.";
       } else {
-        message.innerText =
-          "Placeholder: would send trade for " +
-          shares +
-          " shares of " +
-          ticker.toUpperCase() +
-          " to backend.";
-        message.style.color = "green";
+        message.innerText = "Trade submitted for " + shares + " shares of " + ticker.toUpperCase();
       }
     }
-
-    /*
-      BACKEND CONNECTION EXAMPLE FOR LATER:
-
-      fetch("http://127.0.0.1:8000/portfolio")
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("portfolioValue").innerText = "$" + data.portfolio_value;
-          document.getElementById("portfolioReturn").innerText = data.total_return + "% all-time";
-          document.getElementById("todaysGain").innerText = "+$" + data.todays_gain;
-          document.getElementById("todaysGainPercent").innerText = "+" + data.todays_gain_percent + "% today";
-          document.getElementById("cashBalance").innerText = "$" + data.cash_balance;
-        });
-
-      fetch("http://127.0.0.1:8000/analytics")
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById("sharpeRatio").innerText = data.sharpe_ratio;
-        });
-    */
   </script>
 </body>
 </html>
