@@ -11,9 +11,7 @@ class QuestionnaireResponse(BaseModel):
     portfolio_preference: str # conservative, balanced, growth, aggressive
     loss_tolerance: str       # sell, hold, buy, ignore
 
-# -------------------------------------------------------
 # Risk Score (0-100)
-# -------------------------------------------------------
 def calculate_risk_score(r) -> int:
     score = 0
     score += {"very_conservative": 10, "conservative": 20, "moderate": 35, "aggressive": 50}.get(r.risk_tolerance, 25)
@@ -21,11 +19,13 @@ def calculate_risk_score(r) -> int:
     score += {"short": 10, "medium": 20, "long": 35}.get(r.time_horizon, 20)
     score += {"conservative": 10, "balanced": 20, "growth": 30, "aggressive": 40}.get(r.portfolio_preference, 20)
     score += {"sell": 5, "hold": 15, "buy": 25, "ignore": 30}.get(r.loss_tolerance, 15)
-    return min(score, 100)
+    
+    # Normalize to 0-100 scale
+    MAX_POSSIBLE = 185
+    normalized = round((score / MAX_POSSIBLE) * 100)
+    return normalized
 
-# -------------------------------------------------------
 # Strategy: Passive, Active, Smart Beta
-# -------------------------------------------------------
 def determine_strategy(score: int, experience: int) -> str:
     if experience <= 1 or score < 30:
         return "Passive"          # low experience or very risk averse → index funds, ETFs
@@ -34,9 +34,7 @@ def determine_strategy(score: int, experience: int) -> str:
     else:
         return "Smart Beta"       # middle ground → factor-based ETFs
 
-# -------------------------------------------------------
 # Style: Growth, Value, Income, GARP, Momentum
-# -------------------------------------------------------
 def determine_style(r, score: int) -> str:
     if r.time_horizon == "short" and r.loss_tolerance in ["sell", "hold"]:
         return "Income"           # wants stability and short term → dividends, bonds
@@ -49,9 +47,7 @@ def determine_style(r, score: int) -> str:
     else:
         return "GARP"             # Growth At Reasonable Price → balanced default
 
-# -------------------------------------------------------
 # Profile Summary based on all 3 variables
-# -------------------------------------------------------
 def build_profile_summary(score: int, strategy: str, style: str) -> dict:
     
     risk_label = (
@@ -83,9 +79,7 @@ def build_profile_summary(score: int, strategy: str, style: str) -> dict:
         "description": description
     }
 
-# -------------------------------------------------------
 # Main Endpoint
-# -------------------------------------------------------
 @app.post("/questionnaire/submit")
 async def submit_questionnaire(response: QuestionnaireResponse):
     score    = calculate_risk_score(response)
@@ -102,9 +96,8 @@ async def submit_questionnaire(response: QuestionnaireResponse):
         "description": summary["description"]
     }
 
-# -------------------------------------------------------
+
 # Questions Endpoint
-# -------------------------------------------------------
 @app.get("/questionnaire/questions")
 async def get_questions():
     return {
