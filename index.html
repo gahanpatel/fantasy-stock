@@ -11,94 +11,157 @@
 
     h1 {
       color: #1f2937;
+      margin-bottom: 20px;
     }
 
-    .card {
+    .cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card,
+    .leaderboard-box {
       background-color: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
+      border-radius: 12px;
+      padding: 20px;
       width: 220px;
-      box-shadow: 0 2px 6px lightgray;
+      box-shadow: 0 2px 8px lightgray;
+    }
+
+    .card h2,
+    .leaderboard-box h2 {
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 16px;
+    }
+
+    .value {
+      font-size: 24px;
+      margin-bottom: 12px;
     }
 
     .green {
       color: green;
     }
 
-    input {
-      padding: 8px;
+    .leaderboard-box ol {
+      padding-left: 20px;
+      margin: 0;
+    }
+
+    .leaderboard-box li {
+      margin-bottom: 10px;
+    }
+
+    .trade-section {
+      margin-top: 25px;
+    }
+
+    .trade-section h2 {
+      margin-bottom: 15px;
+    }
+
+    input,
+    select {
+      padding: 10px;
       margin-bottom: 10px;
       width: 220px;
       display: block;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 14px;
     }
 
     button {
-      padding: 8px 12px;
+      padding: 10px 14px;
       background-color: blue;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
+    }
+
+    #tradeMessage {
+      margin-top: 15px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>TamidTrades</h1>
 
-  <div class="card">
-    <p><strong>Portfolio Value</strong></p>
-    <!-- API: /portfolio -->
-    <p id="portfolioValue">$127,800</p>
+  <div class="cards-container">
+    <div class="card">
+      <h2>Portfolio Value</h2>
+      <div class="value">$127,800</div>
+      <p class="green">+27.8% all-time</p>
+    </div>
 
-    <!-- API: /portfolio or /analytics -->
-    <p class="green" id="portfolioReturn">+27.8% all-time</p>
+    <div class="card">
+      <h2>Today's Gain</h2>
+      <div class="value green">+$1,250</div>
+      <p class="green">+0.98% today</p>
+    </div>
+
+    <div class="card">
+      <h2>Cash Balance</h2>
+      <div class="value">$18,420</div>
+      <p>Available buying power</p>
+    </div>
+
+    <div class="card">
+      <h2>Sharpe Ratio</h2>
+      <div class="value">1.42</div>
+      <p>Risk-adjusted performance</p>
+    </div>
+
+    <div class="leaderboard-box">
+      <h2>Leaderboard</h2>
+      <ol>
+        <li>Gahan</li>
+        <li>Zach </li>
+        <li>Shloka </li>
+        <li>Pablo </li>
+        <li>Nathan  </li>
+      </ol>
+    </div>
   </div>
 
-  <div class="card">
-    <p><strong>Today's Gain</strong></p>
-    <!-- API: /portfolio -->
-    <p class="green" id="todaysGain">+$1,250</p>
+  <div class="trade-section">
+    <h2>Mock Trade</h2>
 
-    <!-- API: /portfolio -->
-    <p class="green" id="todaysGainPercent">+0.98% today</p>
+    <input type="text" id="ticker" placeholder="Ticker">
+    <select id="side">
+      <option value="Buy">Buy</option>
+      <option value="Sell">Sell</option>
+    </select>
+    <input type="number" id="shares" placeholder="Shares">
+    <input type="number" id="price" placeholder="Estimated Price">
+
+    <button onclick="submitTrade()">Submit Trade</button>
+
+    <p id="tradeMessage"></p>
   </div>
-
-  <div class="card">
-    <p><strong>Cash Balance</strong></p>
-    <!-- API: /portfolio -->
-    <p id="cashBalance">$18,420</p>
-    <p>Available buying power</p>
-  </div>
-
-  <div class="card">
-    <p><strong>Sharpe Ratio</strong></p>
-    <!-- API: /analytics -->
-    <p id="sharpeRatio">1.42</p>
-    <p>Risk-adjusted performance</p>
-  </div>
-
-  <h2>Mock Trade</h2>
-
-  <input type="text" id="ticker" placeholder="Ticker">
-  <input type="number" id="shares" placeholder="Shares">
-
-  <!-- API: /trade/buy or /trade/sell -->
-  <button onclick="submitTrade()">Submit Trade</button>
-
-  <p id="message"></p>
 
   <script>
     function submitTrade() {
-      let ticker = document.getElementById("ticker").value;
-      let shares = document.getElementById("shares").value;
-      let message = document.getElementById("message");
+      const ticker = document.getElementById("ticker").value.trim().toUpperCase();
+      const side = document.getElementById("side").value;
+      const shares = document.getElementById("shares").value;
+      const price = document.getElementById("price").value;
+      const message = document.getElementById("tradeMessage");
 
-      if (ticker === "" || shares === "") {
-        message.innerText = "Please fill in both boxes.";
-      } else {
-        message.innerText = "Trade submitted for " + shares + " shares of " + ticker.toUpperCase();
+      if (!ticker || !shares || !price) {
+        message.textContent = "Please fill in ticker, shares, and estimated price.";
+        message.style.color = "red";
+        return;
       }
+
+      const total = (Number(shares) * Number(price)).toFixed(2);
+      message.textContent = side + " order created: " + shares + " share(s) of " + ticker + " for about $" + total + ".";
+      message.style.color = "green";
     }
   </script>
 </body>
