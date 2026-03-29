@@ -103,8 +103,12 @@ export default function PortfolioPage() {
     }],
   };
 
-  const chartLabels = history.length > 0 ? history.map(h => h.snapshot_date) : ['Start'];
-  const chartValues = history.length > 0 ? history.map(h => h.total_value) : [STARTING_CASH];
+  const chartLabels = history.length > 0
+    ? ['Start', ...history.map(h => h.snapshot_date)]
+    : ['Start', 'Now'];
+  const chartValues = history.length > 0
+    ? [STARTING_CASH, ...history.map(h => h.total_value)]
+    : [STARTING_CASH, pv?.total_value ?? STARTING_CASH];
 
   const lineData = {
     labels: chartLabels,
