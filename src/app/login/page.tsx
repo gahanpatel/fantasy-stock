@@ -9,6 +9,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -23,17 +24,21 @@ export default function LoginPage() {
     if (user) router.replace('/dashboard');
   }, [user, router]);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.SyntheticEvent) {
     e.preventDefault();
-    const err = login(loginEmail, loginPass);
-    if (err) setError(err);
+    setLoading(true);
+    setError('');
+    const err = await login(loginEmail, loginPass);
+    if (err) { setError(err); setLoading(false); }
     else router.push('/dashboard');
   }
 
-  function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e: React.SyntheticEvent) {
     e.preventDefault();
-    const err = register(regName, regEmail, regPass);
-    if (err) setError(err);
+    setLoading(true);
+    setError('');
+    const err = await register(regName, regEmail, regPass);
+    if (err) { setError(err); setLoading(false); }
     else router.push('/dashboard');
   }
 
@@ -73,7 +78,7 @@ export default function LoginPage() {
               <input
                 type="email" required
                 value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder="you@northeastern.edu"
                 className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
@@ -87,9 +92,8 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <p className="text-xs text-slate-400">Demo: shloka@tamid.org / tamid123</p>
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-3 font-bold text-sm transition-colors">
-              Log In
+            <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-3 font-bold text-sm transition-colors disabled:opacity-60">
+              {loading ? 'Logging in…' : 'Log In'}
             </button>
           </form>
         )}
@@ -102,7 +106,7 @@ export default function LoginPage() {
               <input
                 type="text" required
                 value={regName} onChange={e => setRegName(e.target.value)}
-                placeholder="Shloka"
+                placeholder="Your name"
                 className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
@@ -111,7 +115,7 @@ export default function LoginPage() {
               <input
                 type="email" required
                 value={regEmail} onChange={e => setRegEmail(e.target.value)}
-                placeholder="you@tamid.org"
+                placeholder="you@northeastern.edu"
                 className="w-full border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors"
               />
             </div>
@@ -125,8 +129,8 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-3 font-bold text-sm transition-colors">
-              Create Account
+            <button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-3 font-bold text-sm transition-colors disabled:opacity-60">
+              {loading ? 'Creating account…' : 'Create Account'}
             </button>
           </form>
         )}

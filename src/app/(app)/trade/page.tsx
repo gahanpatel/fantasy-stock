@@ -1,29 +1,48 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { STOCKS, INITIAL_HOLDINGS, getStock, fmt, fmtPct } from '@/lib/data';
-import { Stock } from '@/lib/types';
+import { STOCKS, fmt, fmtPct } from '@/lib/data';
+import { apiFetch } from '@/lib/api';
+
+interface Quote { ticker: string; name: string; price: number; change: number; change_percent: number; sector: string }
+interface PortfolioValue { cash: number; holdings_value: number; total_value: number }
+interface Holding { ticker: string; quantity: number; market_value: number; pnl: number; pnl_percent: number }
 
 export default function TradePage() {
   const [query, setQuery] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [selected, setSelected] = useState<Stock | null>(null);
+  const [selected, setSelected] = useState<Quote | null>(null);
+  const [loadingQuote, setLoadingQuote] = useState(false);
   const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [shares, setShares] = useState('');
   const [feedback, setFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [cash, setCash] = useState(18420);
+  const [cash, setCash] = useState(0);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
   const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    apiFetch<PortfolioValue>('/portfolio/value').then(v => setCash(v.cash)).catch(console.error);
+    apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)).catch(console.error);
+  }, []);
 
   const filtered = query.trim()
     ? STOCKS.filter(s => s.ticker.toLowerCase().includes(query.toLowerCase()) || s.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
-  function selectStock(s: Stock) {
-    setSelected(s);
-    setQuery(s.ticker + ' — ' + s.name);
+  async function selectStock(ticker: string, name: string) {
+    setQuery(ticker + ' — ' + name);
     setDropdownOpen(false);
     setShares('');
     setFeedback(null);
+    setLoadingQuote(true);
+    try {
+      const q = await apiFetch<Quote>(`/market/quote/${ticker}`);
+      setSelected(q);
+    } catch {
+      setFeedback({ msg: `Could not fetch quote for ${ticker}.`, type: 'error' });
+    } finally {
+      setLoadingQuote(false);
+    }
   }
 
   function setQuickQty(frac: number) {
@@ -31,32 +50,38 @@ export default function TradePage() {
     if (side === 'buy') {
       setShares(String(Math.max(1, Math.floor(cash / selected.price * frac))));
     } else {
-      const held = INITIAL_HOLDINGS.find(h => h.ticker === selected.ticker);
-      setShares(String(held ? Math.floor(held.shares * frac) : 0));
+      const held = holdings.find(h => h.ticker === selected.ticker);
+      setShares(String(held ? Math.floor((held as { quantity: number } & Holding).quantity * frac) : 0));
     }
   }
 
-  function submitOrder() {
+  async function submitOrder() {
     if (!selected) { setFeedback({ msg: 'Please select a stock first.', type: 'error' }); return; }
-    const qty = parseInt(shares);
-    if (!qty || qty < 1) { setFeedback({ msg: 'Enter a valid number of shares.', type: 'error' }); return; }
-    const total = qty * selected.price;
-    if (side === 'buy' && total > cash) { setFeedback({ msg: 'Insufficient cash balance.', type: 'error' }); return; }
-    if (side === 'sell') {
-      const held = INITIAL_HOLDINGS.find(h => h.ticker === selected.ticker);
-      if (!held || held.shares < qty) { setFeedback({ msg: "You don't own enough shares to sell.", type: 'error' }); return; }
+    const qty = parseFloat(shares);
+    if (!qty || qty <= 0) { setFeedback({ msg: 'Enter a valid number of shares.', type: 'error' }); return; }
+
+    try {
+      const endpoint = side === 'buy' ? '/trading/buy' : '/trading/sell';
+      const result = await apiFetch<{ message: string; cash_remaining?: number; cash_balance?: number }>(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ ticker: selected.ticker, quantity: qty }),
+      });
+      const newCash = result.cash_remaining ?? result.cash_balance ?? cash;
+      setCash(newCash);
+      // Refresh holdings
+      apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)).catch(console.error);
+      setShares('');
+      setFeedback({ msg: result.message, type: 'success' });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (e: unknown) {
+      setFeedback({ msg: e instanceof Error ? e.message : 'Trade failed', type: 'error' });
     }
-    setCash(c => side === 'buy' ? c - total : c + total);
-    setShares('');
-    setFeedback({ msg: `${side === 'buy' ? 'Bought' : 'Sold'} ${qty} share(s) of ${selected.ticker} for ${fmt(total)}.`, type: 'success' });
-    setTimeout(() => setFeedback(null), 4000);
   }
 
-  const qty = parseInt(shares) || 0;
+  const qty = parseFloat(shares) || 0;
   const total = selected ? qty * selected.price : 0;
   const cashAfter = side === 'buy' ? cash - total : cash + total;
 
-  // Close dropdown on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropdownOpen(false);
@@ -69,7 +94,7 @@ export default function TradePage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-800">Trade</h1>
-        <p className="text-slate-400 text-sm mt-1">Buy and sell stocks at simulated live prices</p>
+        <p className="text-slate-400 text-sm mt-1">Buy and sell stocks at live prices</p>
       </div>
 
       <div className="grid grid-cols-[380px_1fr] gap-5">
@@ -84,7 +109,7 @@ export default function TradePage() {
               value={query}
               onChange={e => { setQuery(e.target.value); setDropdownOpen(true); }}
               onFocus={() => query && setDropdownOpen(true)}
-              placeholder="Search ticker or company..."
+              placeholder="Search ticker or company…"
               className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
             />
             {dropdownOpen && filtered.length > 0 && (
@@ -92,12 +117,11 @@ export default function TradePage() {
                 {filtered.map(s => (
                   <div
                     key={s.ticker}
-                    onClick={() => selectStock(s)}
+                    onClick={() => selectStock(s.ticker, s.name)}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer text-sm"
                   >
                     <span className="font-bold w-12 text-slate-800">{s.ticker}</span>
                     <span className="flex-1 text-slate-400 truncate">{s.name}</span>
-                    <span className={`font-semibold ${s.chg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>{fmt(s.price)}</span>
                   </div>
                 ))}
               </div>
@@ -105,7 +129,8 @@ export default function TradePage() {
           </div>
 
           {/* Selected Stock Card */}
-          {selected && (
+          {loadingQuote && <p className="text-slate-400 text-sm mb-4">Fetching quote…</p>}
+          {selected && !loadingQuote && (
             <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
               <div className="flex justify-between items-start">
                 <div>
@@ -114,8 +139,8 @@ export default function TradePage() {
                 </div>
                 <div className="text-right">
                   <p className="text-xl font-extrabold text-slate-800">{fmt(selected.price)}</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${selected.chg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {selected.chg >= 0 ? '▲' : '▼'} {fmtPct(selected.chg)}
+                  <p className={`text-xs font-semibold mt-0.5 ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {selected.change >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(selected.change_percent))}
                   </p>
                 </div>
               </div>
@@ -139,7 +164,7 @@ export default function TradePage() {
             <div className="flex-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Shares</label>
               <input
-                type="number" min="1"
+                type="number" min="1" step="any"
                 value={shares} onChange={e => setShares(e.target.value)}
                 placeholder="0"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors"
@@ -195,26 +220,17 @@ export default function TradePage() {
           )}
         </div>
 
-        {/* Right: Challenge + Market Table */}
+        {/* Right: Market Table */}
         <div className="flex flex-col gap-4">
-          {/* Weekly Challenge */}
-          <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-75 mb-1">Weekly Challenge · Week of Mar 29</p>
-            <h3 className="text-lg font-extrabold mb-1.5">Build a portfolio with beta under 0.8</h3>
-            <p className="text-sm opacity-85 leading-relaxed">Reduce your portfolio's market sensitivity. Holdings with beta &lt; 0.8 earn 1.5× points this week.</p>
-            <p className="text-xs opacity-70 mt-3">Ends Friday, April 4 at 4:00 PM ET</p>
-          </div>
-
-          {/* Market Table */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1">
             <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Market Overview</h2>
-              <span className="text-xs text-slate-400">Click a row to select</span>
+              <h2 className="font-bold text-slate-800">Stocks</h2>
+              <span className="text-xs text-slate-400">Click a row to select · prices fetched live on select</span>
             </div>
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
-                  {['Symbol', 'Company', 'Price', 'Change', 'Volume'].map(h => (
+                  {['Symbol', 'Company', 'Sector'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                   ))}
                 </tr>
@@ -223,16 +239,12 @@ export default function TradePage() {
                 {STOCKS.map(s => (
                   <tr
                     key={s.ticker}
-                    onClick={() => selectStock(s)}
-                    className="border-t border-slate-100 hover:bg-slate-50 cursor-pointer"
+                    onClick={() => selectStock(s.ticker, s.name)}
+                    className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}
                   >
                     <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
-                    <td className="px-4 py-3 text-sm font-semibold">{fmt(s.price)}</td>
-                    <td className={`px-4 py-3 text-sm font-semibold ${s.chg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {s.chg >= 0 ? '▲' : '▼'} {fmtPct(s.chg)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{s.vol}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
                   </tr>
                 ))}
               </tbody>

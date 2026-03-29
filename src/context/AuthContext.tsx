@@ -1,13 +1,14 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/lib/types';
-import { MOCK_USERS } from '@/lib/data';
+import { apiFetch } from '@/lib/api';
+
+interface User { name: string; email: string; token: string }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => string | null;
-  register: (name: string, email: string, password: string) => string | null;
+  login: (email: string, password: string) => Promise<string | null>;
+  register: (name: string, email: string, password: string) => Promise<string | null>;
   logout: () => void;
 }
 
@@ -15,34 +16,42 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
 
   useEffect(() => {
-    const saved = localStorage.getItem('tt_user');
+    const saved = localStorage.getItem('tt_session');
     if (saved) setUser(JSON.parse(saved));
   }, []);
 
-  function login(email: string, password: string): string | null {
-    const found = users.find(u => u.email === email.toLowerCase() && u.password === password);
-    if (!found) return 'Invalid email or password.';
-    setUser(found);
-    localStorage.setItem('tt_user', JSON.stringify(found));
-    return null;
+  async function login(email: string, password: string): Promise<string | null> {
+    try {
+      const data = await apiFetch<{ token: string; display_name: string }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      const u: User = { name: data.display_name, email, token: data.token };
+      setUser(u);
+      localStorage.setItem('tt_session', JSON.stringify(u));
+      return null;
+    } catch (e: unknown) {
+      return e instanceof Error ? e.message : 'Login failed';
+    }
   }
 
-  function register(name: string, email: string, password: string): string | null {
-    if (password.length < 6) return 'Password must be at least 6 characters.';
-    if (users.find(u => u.email === email.toLowerCase())) return 'Email already registered.';
-    const newUser: User = { email: email.toLowerCase(), password, name };
-    setUsers(prev => [...prev, newUser]);
-    setUser(newUser);
-    localStorage.setItem('tt_user', JSON.stringify(newUser));
-    return null;
+  async function register(name: string, email: string, password: string): Promise<string | null> {
+    try {
+      await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, display_name: name }),
+      });
+      return await login(email, password);
+    } catch (e: unknown) {
+      return e instanceof Error ? e.message : 'Registration failed';
+    }
   }
 
   function logout() {
     setUser(null);
-    localStorage.removeItem('tt_user');
+    localStorage.removeItem('tt_session');
   }
 
   return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
