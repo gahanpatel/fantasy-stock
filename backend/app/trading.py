@@ -10,12 +10,19 @@ class TradeRequest(BaseModel):
     ticker: str
     quantity: float
 
+    @property
+    def qty_db(self) -> int | float:
+        """Return int if whole number, float otherwise — avoids '1.0' integer column errors."""
+        return int(self.quantity) if self.quantity == int(self.quantity) else self.quantity
+
 
 def get_price_cents(ticker: str) -> int:
     """Returns current price in cents (integer)."""
-    info = yf.Ticker(ticker).info
-    price = info.get("regularMarketPrice")
-    if price is None:
+    try:
+        price = yf.Ticker(ticker).fast_info.last_price
+    except Exception:
+        price = None
+    if not price:
         raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
     return int(round(price * 100))
 
@@ -44,14 +51,14 @@ def buy(request: TradeRequest, user_id: str = Depends(get_current_user)):
         new_qty = existing["quantity"] + request.quantity
         new_avg_cents = int(round((existing["average_cost"] * existing["quantity"] + total_cost_cents) / new_qty))
         supabase.table("positions").update({
-            "quantity": new_qty,
+            "quantity": new_qty if new_qty != int(new_qty) else int(new_qty),
             "average_cost": new_avg_cents
         }).eq("user_id", user_id).eq("ticker", ticker).execute()
     else:
         supabase.table("positions").insert({
             "user_id": user_id,
             "ticker": ticker,
-            "quantity": request.quantity,
+            "quantity": request.qty_db,
             "average_cost": price_cents
         }).execute()
 
@@ -60,7 +67,7 @@ def buy(request: TradeRequest, user_id: str = Depends(get_current_user)):
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
-        "quantity": request.quantity,
+        "quantity": request.qty_db,
         "price": price_cents,
         "side": "buy",
         "total": total_cost_cents
@@ -94,7 +101,9 @@ def sell(request: TradeRequest, user_id: str = Depends(get_current_user)):
     if new_qty == 0:
         supabase.table("positions").delete().eq("user_id", user_id).eq("ticker", ticker).execute()
     else:
-        supabase.table("positions").update({"quantity": new_qty}).eq("user_id", user_id).eq("ticker", ticker).execute()
+        supabase.table("positions").update({
+            "quantity": new_qty if new_qty != int(new_qty) else int(new_qty)
+        }).eq("user_id", user_id).eq("ticker", ticker).execute()
 
     user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
     cash_cents = user_result.data[0]["cash_balance"]
@@ -103,7 +112,7 @@ def sell(request: TradeRequest, user_id: str = Depends(get_current_user)):
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
-        "quantity": request.quantity,
+        "quantity": request.qty_db,
         "price": price_cents,
         "side": "sell",
         "total": total_proceeds_cents

@@ -8,9 +8,8 @@ router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 def fetch_price_cents(ticker: str) -> int:
     try:
-        info = yf.Ticker(ticker).info
-        price = info.get("regularMarketPrice") or 0.0
-        return int(round(price * 100))
+        price = yf.Ticker(ticker).fast_info.last_price
+        return int(round(price * 100)) if price else 0
     except Exception:
         return 0
 

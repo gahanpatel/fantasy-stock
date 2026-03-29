@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.config import supabase, JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRATION_MINUTES, STARTING_CASH
 from fastapi import Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -53,11 +53,11 @@ def login(request: LoginRequest):
 
     token_data = {
         "sub": user["id"],
-        "exp": datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRATION_MINUTES)
     }
     token = jwt.encode(token_data, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-    return {"token": token}
+    return {"token": token, "display_name": user["display_name"]}
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
