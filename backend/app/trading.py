@@ -11,13 +11,13 @@ class TradeRequest(BaseModel):
     quantity: float
 
 
-def get_current_price(ticker: str) -> float:
-    stock = yf.Ticker(ticker)
-    info = stock.info
+def get_price_cents(ticker: str) -> int:
+    """Returns current price in cents (integer)."""
+    info = yf.Ticker(ticker).info
     price = info.get("regularMarketPrice")
     if price is None:
         raise HTTPException(status_code=404, detail=f"Ticker '{ticker}' not found")
-    return price
+    return int(round(price * 100))
 
 
 @router.post("/buy")
@@ -26,50 +26,50 @@ def buy(request: TradeRequest, user_id: str = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Quantity must be positive")
 
     ticker = request.ticker.upper()
-    price = get_current_price(ticker)
-    total_cost = price * request.quantity
+    price_cents = get_price_cents(ticker)
+    total_cost_cents = int(round(price_cents * request.quantity))
 
     user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
     if not user_result.data:
         raise HTTPException(status_code=404, detail="User not found")
-    cash = user_result.data[0]["cash_balance"]
+    cash_cents = user_result.data[0]["cash_balance"]
 
-    if cash < total_cost:
-        raise HTTPException(status_code=400, detail=f"Insufficient funds. Need ${total_cost:.2f}, have ${cash:.2f}")
+    if cash_cents < total_cost_cents:
+        raise HTTPException(status_code=400, detail=f"Insufficient funds. Need ${total_cost_cents/100:.2f}, have ${cash_cents/100:.2f}")
 
-    holding_result = supabase.table("positions").select("*").eq("user_id", user_id).eq("ticker", ticker).execute()
+    position_result = supabase.table("positions").select("*").eq("user_id", user_id).eq("ticker", ticker).execute()
 
-    if holding_result.data:
-        existing = holding_result.data[0]
+    if position_result.data:
+        existing = position_result.data[0]
         new_qty = existing["quantity"] + request.quantity
-        new_avg = ((existing["average_cost"] * existing["quantity"]) + total_cost) / new_qty
+        new_avg_cents = int(round((existing["average_cost"] * existing["quantity"] + total_cost_cents) / new_qty))
         supabase.table("positions").update({
             "quantity": new_qty,
-            "average_cost": new_avg
+            "average_cost": new_avg_cents
         }).eq("user_id", user_id).eq("ticker", ticker).execute()
     else:
         supabase.table("positions").insert({
             "user_id": user_id,
             "ticker": ticker,
             "quantity": request.quantity,
-            "average_cost": price
+            "average_cost": price_cents
         }).execute()
 
-    supabase.table("users").update({"cash_balance": cash - total_cost}).eq("id", user_id).execute()
+    supabase.table("users").update({"cash_balance": cash_cents - total_cost_cents}).eq("id", user_id).execute()
 
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
         "quantity": request.quantity,
-        "price": price,
+        "price": price_cents,
         "side": "buy",
-        "total": round(total_cost, 2)
+        "total": total_cost_cents
     }).execute()
 
     return {
-        "message": f"Bought {request.quantity} share(s) of {ticker} at ${price:.2f}",
-        "total_cost": round(total_cost, 2),
-        "cash_remaining": round(cash - total_cost, 2)
+        "message": f"Bought {request.quantity} share(s) of {ticker} at ${price_cents/100:.2f}",
+        "total_cost": total_cost_cents / 100,
+        "cash_remaining": (cash_cents - total_cost_cents) / 100
     }
 
 
@@ -79,14 +79,14 @@ def sell(request: TradeRequest, user_id: str = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Quantity must be positive")
 
     ticker = request.ticker.upper()
-    price = get_current_price(ticker)
-    total_proceeds = price * request.quantity
+    price_cents = get_price_cents(ticker)
+    total_proceeds_cents = int(round(price_cents * request.quantity))
 
-    holding_result = supabase.table("positions").select("*").eq("user_id", user_id).eq("ticker", ticker).execute()
-    if not holding_result.data:
+    position_result = supabase.table("positions").select("*").eq("user_id", user_id).eq("ticker", ticker).execute()
+    if not position_result.data:
         raise HTTPException(status_code=400, detail=f"You don't own any shares of {ticker}")
 
-    existing = holding_result.data[0]
+    existing = position_result.data[0]
     if existing["quantity"] < request.quantity:
         raise HTTPException(status_code=400, detail=f"Insufficient shares. Have {existing['quantity']}, trying to sell {request.quantity}")
 
@@ -97,20 +97,20 @@ def sell(request: TradeRequest, user_id: str = Depends(get_current_user)):
         supabase.table("positions").update({"quantity": new_qty}).eq("user_id", user_id).eq("ticker", ticker).execute()
 
     user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
-    cash = user_result.data[0]["cash_balance"]
-    supabase.table("users").update({"cash_balance": cash + total_proceeds}).eq("id", user_id).execute()
+    cash_cents = user_result.data[0]["cash_balance"]
+    supabase.table("users").update({"cash_balance": cash_cents + total_proceeds_cents}).eq("id", user_id).execute()
 
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
         "quantity": request.quantity,
-        "price": price,
+        "price": price_cents,
         "side": "sell",
-        "total": round(total_proceeds, 2)
+        "total": total_proceeds_cents
     }).execute()
 
     return {
-        "message": f"Sold {request.quantity} share(s) of {ticker} at ${price:.2f}",
-        "total_proceeds": round(total_proceeds, 2),
-        "cash_balance": round(cash + total_proceeds, 2)
+        "message": f"Sold {request.quantity} share(s) of {ticker} at ${price_cents/100:.2f}",
+        "total_proceeds": total_proceeds_cents / 100,
+        "cash_balance": (cash_cents + total_proceeds_cents) / 100
     }
