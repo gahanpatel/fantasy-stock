@@ -38,26 +38,11 @@ export default function LeaderboardPage() {
     },
   };
 
-  const WALL_OF_FAME = [
-    { week: 'Week 4', winner: 'Gahan'  },
-    { week: 'Week 3', winner: 'Zach'   },
-    { week: 'Week 2', winner: 'Shloka' },
-    { week: 'Week 1', winner: 'Pablo'  },
-  ];
-
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-800">Leaderboard</h1>
         <p className="text-slate-400 text-sm mt-1">Season standings · Updated at market close</p>
-      </div>
-
-      {/* Weekly Challenge */}
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-5 text-white mb-5">
-        <p className="text-xs font-bold uppercase tracking-widest opacity-75 mb-1">Active Challenge · Week 5</p>
-        <h3 className="text-lg font-extrabold mb-1">Build a portfolio with beta under 0.8</h3>
-        <p className="text-sm opacity-85">Defensive plays earn 1.5× points. Current challenge leader: <strong>Shreya</strong> (beta: 0.71)</p>
-        <p className="text-xs opacity-70 mt-2.5">Ends Friday, April 4 · 4:00 PM ET</p>
       </div>
 
       <div className="grid grid-cols-[1fr_280px] gap-5">
@@ -122,17 +107,6 @@ export default function LeaderboardPage() {
 
         {/* Right column */}
         <div className="flex flex-col gap-4">
-          {/* Wall of Fame */}
-          <div className="bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl p-5 text-white">
-            <h2 className="font-extrabold text-base mb-4">🌟 Wall of Fame</h2>
-            {WALL_OF_FAME.map(w => (
-              <div key={w.week} className="flex justify-between py-2 border-b border-white/20 text-sm last:border-0">
-                <span className="opacity-85">{w.week} Winner</span>
-                <strong>{w.winner}</strong>
-              </div>
-            ))}
-          </div>
-
           {/* Bar chart */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
             <h2 className="font-bold text-slate-800 mb-4">Return Distribution</h2>
