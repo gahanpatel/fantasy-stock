@@ -35,11 +35,20 @@ export default function TradePage() {
   const [feedback, setFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [cash, setCash] = useState(0);
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [liveData, setLiveData] = useState<Record<string, { price: number; change_percent: number }>>({});
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiFetch<PortfolioValue>('/portfolio/value').then(v => setCash(v.cash)).catch(console.error);
     apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)).catch(console.error);
+    STOCKS.forEach(async s => {
+      try {
+        const res = await fetch(`/api/quote/${s.ticker}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.error) setLiveData(prev => ({ ...prev, [s.ticker]: { price: data.price, change_percent: data.change_percent } }));
+      } catch { /* silently skip */ }
+    });
   }, []);
 
   const filtered = query.trim()
@@ -244,7 +253,7 @@ export default function TradePage() {
             <table className="w-full">
               <thead className="bg-slate-50">
                 <tr>
-                  {['Symbol', 'Company', 'Sector'].map(h => (
+                  {['Symbol', 'Company', 'Sector', 'Price', 'Change'].map(h => (
                     <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                   ))}
                 </tr>
@@ -255,6 +264,10 @@ export default function TradePage() {
                     <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-700">{fmt(liveData[s.ticker]?.price ?? s.price)}</td>
+                    <td className={`px-4 py-3 text-sm font-semibold ${(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(liveData[s.ticker]?.change_percent ?? s.chg))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
