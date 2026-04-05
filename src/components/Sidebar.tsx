@@ -5,11 +5,12 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 const NAV = [
-  { href: '/dashboard',   icon: '📊', label: 'Dashboard'   },
-  { href: '/portfolio',   icon: '💼', label: 'Portfolio'   },
-  { href: '/trade',       icon: '⚡', label: 'Trade'       },
-  { href: '/leaderboard', icon: '🏆', label: 'Leaderboard' },
-  { href: '/history',     icon: '🕒', label: 'History'     },
+  { href: '/dashboard',     icon: '📊', label: 'Dashboard'   },
+  { href: '/portfolio',     icon: '💼', label: 'Portfolio'   },
+  { href: '/trade',         icon: '⚡', label: 'Trade'       },
+  { href: '/leaderboard',   icon: '🏆', label: 'Leaderboard' },
+  { href: '/history',       icon: '🕒', label: 'History'     },
+  { href: '/questionnaire', icon: '📋', label: 'My Profile'  },
 ];
 
 export default function Sidebar() {

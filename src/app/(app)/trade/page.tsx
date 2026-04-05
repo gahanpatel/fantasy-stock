@@ -9,6 +9,16 @@ interface Quote {
   price: number;
   change: number;
   change_percent: number;
+  market_cap: number | null;
+  beta: number | null;
+  pe_ratio: number | null;
+  forward_pe: number | null;
+  eps: number | null;
+  week_52_high: number | null;
+  week_52_low: number | null;
+  avg_volume: number | null;
+  dividend_yield: number | null;
+  price_to_book: number | null;
 }
 
 export default function TradePage() {
@@ -96,6 +106,25 @@ export default function TradePage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
+
+  function fmtCap(n: number | null): string {
+    if (n === null) return '—';
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
+    if (n >= 1e9)  return `$${(n / 1e9).toFixed(2)}B`;
+    if (n >= 1e6)  return `$${(n / 1e6).toFixed(2)}M`;
+    return `$${n.toLocaleString()}`;
+  }
+
+  function fmtVol(n: number | null): string {
+    if (n === null) return '—';
+    if (n >= 1e6) return `${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
+    return n.toLocaleString();
+  }
+
+  function fmtNum(n: number | null, decimals = 2): string {
+    return n === null ? '—' : n.toFixed(decimals);
+  }
 
   return (
     <div>
@@ -227,38 +256,77 @@ export default function TradePage() {
           )}
         </div>
 
-        {/* Right: Market Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">Market Overview</h2>
-            <span className="text-xs text-slate-400">Click a row to load live price</span>
-          </div>
-          <table className="w-full">
-            <thead className="bg-slate-50">
-              <tr>
-                {['Symbol', 'Company', 'Sector', 'Static Price', 'Change'].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {STOCKS.map(s => (
-                <tr
-                  key={s.ticker}
-                  onClick={() => selectStock(s.ticker)}
-                  className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}
-                >
-                  <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
-                  <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
-                  <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-700">{fmt(s.price)}</td>
-                  <td className={`px-4 py-3 text-sm font-semibold ${s.chg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {s.chg >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(s.chg))}
-                  </td>
+        {/* Right: Market Table + Metrics */}
+        <div className="flex flex-col gap-5">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
+              <h2 className="font-bold text-slate-800">Market Overview</h2>
+              <span className="text-xs text-slate-400">Click a row to load live price</span>
+            </div>
+            <table className="w-full">
+              <thead className="bg-slate-50">
+                <tr>
+                  {['Symbol', 'Company', 'Sector', 'Static Price', 'Change'].map(h => (
+                    <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {STOCKS.map(s => (
+                  <tr
+                    key={s.ticker}
+                    onClick={() => selectStock(s.ticker)}
+                    className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}
+                  >
+                    <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
+                    <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-700">{fmt(s.price)}</td>
+                    <td className={`px-4 py-3 text-sm font-semibold ${s.chg >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {s.chg >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(s.chg))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Stock Metrics Panel */}
+          {selected && !loadingQuote && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="font-bold text-slate-800">{selected.ticker} — Key Metrics</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">{selected.name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-extrabold text-slate-800">{fmt(selected.price)}</p>
+                  <p className={`text-xs font-semibold ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {selected.change >= 0 ? '▲' : '▼'} {fmtNum(Math.abs(selected.change))} ({fmtPct(Math.abs(selected.change_percent))})
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  { label: 'Market Cap',     value: fmtCap(selected.market_cap) },
+                  { label: 'Beta',           value: fmtNum(selected.beta) },
+                  { label: 'P/E Ratio',      value: fmtNum(selected.pe_ratio) },
+                  { label: 'Forward P/E',    value: fmtNum(selected.forward_pe) },
+                  { label: 'EPS',            value: selected.eps !== null ? `$${fmtNum(selected.eps)}` : '—' },
+                  { label: '52W High',       value: selected.week_52_high !== null ? fmt(selected.week_52_high) : '—' },
+                  { label: '52W Low',        value: selected.week_52_low !== null ? fmt(selected.week_52_low) : '—' },
+                  { label: 'Avg Volume',     value: fmtVol(selected.avg_volume) },
+                  { label: 'Dividend Yield', value: selected.dividend_yield !== null ? `${fmtNum(selected.dividend_yield)}%` : '—' },
+                  { label: 'Price/Book',     value: fmtNum(selected.price_to_book) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+                    <p className="text-sm font-extrabold text-slate-800">{value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
