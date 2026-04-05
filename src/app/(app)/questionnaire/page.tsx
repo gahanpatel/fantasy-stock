@@ -20,12 +20,19 @@ interface ProfileResult {
   description: string;
 }
 
+interface Analytics {
+  sharpe_ratio: number | null;
+  annualized_return: number | null;
+  volatility: number | null;
+}
+
 export default function QuestionnairePage() {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<ProfileResult | null>(null);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -60,11 +67,15 @@ export default function QuestionnairePage() {
         portfolio_preference: answers['portfolio_preference'],
         loss_tolerance:       answers['loss_tolerance'],
       };
-      const res = await apiFetch<ProfileResult>('/questionnaire/submit', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      const [res, analyticsRes] = await Promise.all([
+        apiFetch<ProfileResult>('/questionnaire/submit', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }),
+        apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
+      ]);
       setResult(res);
+      setAnalytics(analyticsRes);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Submission failed');
     } finally {
@@ -94,7 +105,7 @@ export default function QuestionnairePage() {
           <h2 className="text-2xl font-extrabold text-slate-800 mb-1">Your Investor Profile</h2>
           <p className="text-slate-400 text-sm mb-6">Here's what your answers tell us about you.</p>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="bg-slate-50 rounded-xl p-4">
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Risk Score</p>
               <p className={`text-2xl font-extrabold ${scoreColor}`}>{result.risk_score}</p>
@@ -109,6 +120,32 @@ export default function QuestionnairePage() {
               <p className="text-lg font-extrabold text-slate-800">{result.style}</p>
             </div>
           </div>
+
+          {analytics && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-slate-50 rounded-xl p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Sharpe Ratio</p>
+                <p className={`text-2xl font-extrabold ${analytics.sharpe_ratio !== null && analytics.sharpe_ratio >= 1 ? 'text-emerald-500' : analytics.sharpe_ratio !== null && analytics.sharpe_ratio >= 0 ? 'text-yellow-500' : 'text-red-500'}`}>
+                  {analytics.sharpe_ratio !== null ? analytics.sharpe_ratio.toFixed(2) : '—'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">risk-adjusted return</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Ann. Return</p>
+                <p className={`text-2xl font-extrabold ${analytics.annualized_return !== null && analytics.annualized_return >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {analytics.annualized_return !== null ? `${analytics.annualized_return > 0 ? '+' : ''}${analytics.annualized_return.toFixed(1)}%` : '—'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">annualized</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Volatility</p>
+                <p className="text-2xl font-extrabold text-slate-800">
+                  {analytics.volatility !== null ? `${analytics.volatility.toFixed(1)}%` : '—'}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">annualized</p>
+              </div>
+            </div>
+          )}
 
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 text-left">
             <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">{result.risk_label} Investor</p>

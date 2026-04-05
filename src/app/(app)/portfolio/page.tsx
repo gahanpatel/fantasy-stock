@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api';
-import { fmt, fmtPct } from '@/lib/data';
+import { fmt, fmtPct, STOCKS } from '@/lib/data';
 import { Line, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
@@ -14,11 +14,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcEleme
 const STARTING_CASH = 100000;
 
 const SECTOR_COLORS: Record<string, string> = {
-  Technology: '#6366f1',
-  Financials: '#10b981',
-  'Health Care': '#f59e0b',
-  'Consumer Discretionary': '#f97316',
-  Cash: '#94a3b8',
+  Technology:              '#6366f1',
+  Financials:              '#10b981',
+  'Health Care':           '#f59e0b',
+  'Consumer Discretionary':'#f97316',
+  'Consumer Staples':      '#84cc16',
+  Energy:                  '#ef4444',
+  Industrials:             '#3b82f6',
+  ETF:                     '#a855f7',
+  Other:                   '#94a3b8',
 };
 
 interface Holding {
@@ -34,12 +38,14 @@ interface Holding {
 
 interface PortfolioValue { cash: number; holdings_value: number; total_value: number }
 interface HistoryEntry { snapshot_date: string; total_value: number }
+interface Analytics { sharpe_ratio: number | null; annualized_return: number | null; volatility: number | null }
 
 export default function PortfolioPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [pv, setPv] = useState<PortfolioValue | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const [sellModal, setSellModal] = useState<Holding | null>(null);
@@ -85,10 +91,12 @@ export default function PortfolioPage() {
       apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
       apiFetch<PortfolioValue>('/portfolio/value'),
       apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
-    ]).then(([h, v, hist]) => {
+      apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
+    ]).then(([h, v, hist, a]) => {
       setHoldings(h.holdings);
       setPv(v);
       setHistory(hist.history);
+      setAnalytics(a);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -123,10 +131,9 @@ export default function PortfolioPage() {
   // Sector breakdown
   const sectorMap: Record<string, number> = {};
   holdings.forEach(h => {
-    const sector = h.sector ?? 'Other';
+    const sector = STOCKS.find(s => s.ticker === h.ticker)?.sector ?? 'Other';
     sectorMap[sector] = (sectorMap[sector] ?? 0) + h.market_value;
   });
-  if (pv?.cash) sectorMap['Cash'] = pv.cash;
   const sectorLabels = Object.keys(sectorMap);
   const sectorValues = Object.values(sectorMap);
   const total = sectorValues.reduce((a, b) => a + b, 0);
@@ -167,11 +174,19 @@ export default function PortfolioPage() {
         <p className="text-slate-400">Loading…</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-4 gap-4 mb-4">
             {[
-              { label: 'Total Value',     value: pv ? fmt(pv.total_value)   : '—', change: `${totalPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(totalPnlPct).toFixed(2)}% all-time`, color: totalPnlPct >= 0 ? 'text-emerald-500' : 'text-red-500' },
-              { label: 'Unrealized P&L', value: fmt(totalPnl),              change: `${totalPnl >= 0 ? '▲' : '▼'} on cost basis`,                                           color: totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500' },
-              { label: 'Cash Balance',   value: pv ? fmt(pv.cash) : '—',   change: 'Available to invest',                                                                    color: 'text-slate-400' },
+              { label: 'Total Value',     value: pv ? fmt(pv.total_value) : '—', change: `${totalPnlPct >= 0 ? '▲' : '▼'} ${Math.abs(totalPnlPct).toFixed(2)}% all-time`, color: totalPnlPct >= 0 ? 'text-emerald-500' : 'text-red-500' },
+              { label: 'Unrealized P&L', value: fmt(totalPnl),                   change: `${totalPnl >= 0 ? '▲' : '▼'} on cost basis`,                                    color: totalPnl >= 0 ? 'text-emerald-500' : 'text-red-500' },
+              { label: 'Cash Balance',   value: pv ? fmt(pv.cash) : '—',         change: 'Available to invest',                                                             color: 'text-slate-400' },
+              {
+                label: 'Sharpe Ratio',
+                value: analytics?.sharpe_ratio !== null && analytics?.sharpe_ratio !== undefined ? analytics.sharpe_ratio.toFixed(2) : '—',
+                change: 'Risk-adjusted return',
+                color: analytics?.sharpe_ratio !== null && analytics?.sharpe_ratio !== undefined
+                  ? analytics.sharpe_ratio >= 1 ? 'text-emerald-500' : analytics.sharpe_ratio >= 0 ? 'text-yellow-500' : 'text-red-500'
+                  : 'text-slate-400',
+              },
             ].map(c => (
               <div key={c.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{c.label}</p>

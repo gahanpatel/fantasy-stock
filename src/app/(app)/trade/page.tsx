@@ -53,9 +53,22 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
     })();
   }, []);
 
-  const filtered = query.trim()
-    ? STOCKS.filter(s => s.ticker.toLowerCase().includes(query.toLowerCase()) || s.name.toLowerCase().includes(query.toLowerCase()))
-    : STOCKS;
+  const filtered = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return STOCKS;
+    const matches = STOCKS.filter(s =>
+      s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+    );
+    return matches.sort((a, b) => {
+      const aTickerStarts = a.ticker.toLowerCase().startsWith(q);
+      const bTickerStarts = b.ticker.toLowerCase().startsWith(q);
+      const aNameStarts   = a.name.toLowerCase().startsWith(q);
+      const bNameStarts   = b.name.toLowerCase().startsWith(q);
+      const aScore = aTickerStarts ? 0 : aNameStarts ? 1 : 2;
+      const bScore = bTickerStarts ? 0 : bNameStarts ? 1 : 2;
+      return aScore - bScore;
+    });
+  })();
 
   const topGainers = [...STOCKS]
     .sort((a, b) => (liveData[b.ticker]?.change_percent ?? b.chg) - (liveData[a.ticker]?.change_percent ?? a.chg))

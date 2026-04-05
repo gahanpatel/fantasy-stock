@@ -131,4 +131,34 @@ def _upsert_snapshot(user_id: str, date_str: str, total_cents: int):
 
 @router.get("/analytics")
 def get_analytics(user_id: str = Depends(get_current_user)):
-    return {"detail": "Analytics not yet implemented"}
+    STARTING_VALUE = 10_000_000  # $100,000 in cents
+    RISK_FREE_ANNUAL = 0.05      # 5% annual risk-free rate
+    RISK_FREE_DAILY = RISK_FREE_ANNUAL / 252
+
+    snapshots_result = supabase.table("portfolio_snapshots").select("*").eq("user_id", user_id).order("snapshot_date").execute()
+    snapshots = snapshots_result.data or []
+
+    values = [STARTING_VALUE] + [s["total_value"] for s in snapshots]
+
+    if len(values) < 3:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    daily_returns = [(values[i] - values[i - 1]) / values[i - 1] for i in range(1, len(values))]
+
+    n = len(daily_returns)
+    mean_return = sum(daily_returns) / n
+    variance = sum((r - mean_return) ** 2 for r in daily_returns) / (n - 1)
+    std_dev = variance ** 0.5
+
+    excess_returns = [r - RISK_FREE_DAILY for r in daily_returns]
+    mean_excess = sum(excess_returns) / n
+    sharpe = (mean_excess / std_dev) * (252 ** 0.5) if std_dev > 0 else 0
+
+    annualized_return = ((values[-1] / values[0]) ** (252 / n) - 1) * 100
+    annualized_vol = std_dev * (252 ** 0.5) * 100
+
+    return {
+        "sharpe_ratio": round(sharpe, 2),
+        "annualized_return": round(annualized_return, 2),
+        "volatility": round(annualized_vol, 2),
+    }
