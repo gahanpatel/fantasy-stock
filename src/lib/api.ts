@@ -1,4 +1,4 @@
-export const API_URL = 'https://fantasy-stock-production.up.railway.app';
+export const API_URL = 'https://successful-quietude-production-2df8.up.railway.app';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
