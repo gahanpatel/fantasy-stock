@@ -55,6 +55,10 @@ export default function TradePage() {
     ? STOCKS.filter(s => s.ticker.toLowerCase().includes(query.toLowerCase()) || s.name.toLowerCase().includes(query.toLowerCase()))
     : [];
 
+  const topGainers = [...STOCKS]
+    .sort((a, b) => (liveData[b.ticker]?.change_percent ?? b.chg) - (liveData[a.ticker]?.change_percent ?? a.chg))
+    .slice(0, 15);
+
   async function selectStock(ticker: string, name: string) {
     const cleanTicker = ticker.split(/[\s—–-]/)[0].toUpperCase();
     setQuery(cleanTicker + (name !== cleanTicker ? ' — ' + name : ''));
@@ -247,8 +251,8 @@ export default function TradePage() {
         <div className="flex flex-col gap-5">
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Stocks</h2>
-              <span className="text-xs text-slate-400">Click a row to select · prices fetched live on select</span>
+              <h2 className="font-bold text-slate-800">Top Gainers</h2>
+              <span className="text-xs text-slate-400">Top 15 by % change today · click to select</span>
             </div>
             <table className="w-full">
               <thead className="bg-slate-50">
@@ -259,7 +263,7 @@ export default function TradePage() {
                 </tr>
               </thead>
               <tbody>
-                {STOCKS.map(s => (
+                {topGainers.map(s => (
                   <tr key={s.ticker} onClick={() => selectStock(s.ticker, s.name)} className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}>
                     <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
                     <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
