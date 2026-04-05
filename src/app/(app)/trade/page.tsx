@@ -141,15 +141,23 @@ export default function TradePage() {
           <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
 
           <div className="relative mb-4" ref={dropRef}>
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
-            <input
-              value={query}
-              onChange={e => { setQuery(e.target.value); setDropdownOpen(true); }}
-              onFocus={() => query && setDropdownOpen(true)}
-              onKeyDown={e => { if (e.key === 'Enter') { const t = query.trim().toUpperCase(); setDropdownOpen(false); selectStock(t, t); } }}
-              placeholder="Search or type any ticker + Enter…"
-              className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
-            />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+                <input
+                  value={query}
+                  onChange={e => { setQuery(e.target.value); setDropdownOpen(true); }}
+                  onFocus={() => query && setDropdownOpen(true)}
+                  onKeyDown={e => { if (e.key === 'Enter') { const t = query.trim().toUpperCase(); setDropdownOpen(false); selectStock(t, t); } }}
+                  placeholder="Search or type any ticker…"
+                  className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <button
+                onClick={() => { const t = query.trim().toUpperCase(); if (t) { setDropdownOpen(false); selectStock(t, t); } }}
+                className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition-colors"
+              >Go</button>
+            </div>
             {dropdownOpen && filtered.length > 0 && (
               <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 border-t-0 rounded-b-lg z-50 max-h-48 overflow-y-auto shadow-lg">
                 {filtered.map(s => (
