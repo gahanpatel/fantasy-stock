@@ -47,19 +47,20 @@ export default function TradePage() {
     : [];
 
   async function selectStock(ticker: string, name: string) {
-    setQuery(ticker + ' — ' + name);
+    const cleanTicker = ticker.split(/[\s—–-]/)[0].toUpperCase();
+    setQuery(cleanTicker + (name !== cleanTicker ? ' — ' + name : ''));
     setDropdownOpen(false);
     setShares('');
     setFeedback(null);
     setLoadingQuote(true);
     try {
       // Fetch extended quote (price + metrics) from Next.js API route → Yahoo Finance
-      const res = await fetch(`/api/quote/${ticker}`);
+      const res = await fetch(`/api/quote/${cleanTicker}`);
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to fetch');
       setSelected(data as Quote);
     } catch {
-      setFeedback({ msg: `Could not fetch quote for ${ticker}.`, type: 'error' });
+      setFeedback({ msg: `Could not fetch quote for ${cleanTicker}.`, type: 'error' });
     } finally {
       setLoadingQuote(false);
     }
