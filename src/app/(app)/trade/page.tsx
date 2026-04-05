@@ -148,7 +148,7 @@ export default function TradePage() {
                 <input
                   value={query}
                   onChange={e => { setQuery(e.target.value); setDropdownOpen(true); }}
-                  onFocus={() => query && setDropdownOpen(true)}
+                  onFocus={e => { e.target.select(); query && setDropdownOpen(true); }}
                   onKeyDown={e => { if (e.key === 'Enter') { const t = query.trim().toUpperCase(); setDropdownOpen(false); selectStock(t, t); } }}
                   placeholder="Search or type any ticker…"
                   className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
