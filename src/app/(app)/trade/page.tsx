@@ -23,37 +23,39 @@ interface Quote {
   price_to_book: number | null;
 }
 interface PortfolioValue { cash: number; holdings_value: number; total_value: number }
-interface Holding { ticker: string; quantity: number; market_value: number; pnl: number; pnl_percent: number }
 
 export default function TradePage() {
   const [query, setQuery] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selected, setSelected] = useState<Quote | null>(null);
   const [loadingQuote, setLoadingQuote] = useState(false);
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
   const [shares, setShares] = useState('');
   const [feedback, setFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [cash, setCash] = useState(0);
-  const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [liveData, setLiveData] = useState<Record<string, { price: number; change_percent: number }>>({});
+const [liveData, setLiveData] = useState<Record<string, { price: number; change_percent: number }>>({});
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiFetch<PortfolioValue>('/portfolio/value').then(v => setCash(v.cash)).catch(console.error);
-    apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)).catch(console.error);
-    STOCKS.forEach(async s => {
-      try {
-        const res = await fetch(`/api/quote/${s.ticker}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.error) setLiveData(prev => ({ ...prev, [s.ticker]: { price: data.price, change_percent: data.change_percent } }));
-      } catch { /* silently skip */ }
-    });
+    (async () => {
+      const batchSize = 5;
+      for (let i = 0; i < STOCKS.length; i += batchSize) {
+        await Promise.all(STOCKS.slice(i, i + batchSize).map(async s => {
+          try {
+            const res = await fetch(`/api/quote/${s.ticker}`, { cache: 'no-store' });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.error) setLiveData(prev => ({ ...prev, [s.ticker]: { price: data.price, change_percent: data.change_percent } }));
+          } catch { /* silently skip */ }
+        }));
+        if (i + batchSize < STOCKS.length) await new Promise(r => setTimeout(r, 300));
+      }
+    })();
   }, []);
 
   const filtered = query.trim()
     ? STOCKS.filter(s => s.ticker.toLowerCase().includes(query.toLowerCase()) || s.name.toLowerCase().includes(query.toLowerCase()))
-    : [];
+    : STOCKS;
 
   const topGainers = [...STOCKS]
     .sort((a, b) => (liveData[b.ticker]?.change_percent ?? b.chg) - (liveData[a.ticker]?.change_percent ?? a.chg))
@@ -68,7 +70,7 @@ export default function TradePage() {
     setLoadingQuote(true);
     try {
       // Fetch extended quote (price + metrics) from Next.js API route → Yahoo Finance
-      const res = await fetch(`/api/quote/${cleanTicker}`);
+      const res = await fetch(`/api/quote/${cleanTicker}`, { cache: 'no-store' });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to fetch');
       setSelected(data as Quote);
@@ -81,12 +83,7 @@ export default function TradePage() {
 
   function setQuickQty(frac: number) {
     if (!selected) return;
-    if (side === 'buy') {
-      setShares(String(Math.max(1, Math.floor(cash / selected.price * frac))));
-    } else {
-      const held = holdings.find((h: Holding) => h.ticker === selected.ticker);
-      setShares(String(held ? Math.floor(held.quantity * frac) : 0));
-    }
+    setShares(String(Math.max(1, Math.floor(cash / selected.price * frac))));
   }
 
   async function submitOrder() {
@@ -95,14 +92,12 @@ export default function TradePage() {
     if (!qty || qty <= 0) { setFeedback({ msg: 'Enter a valid number of shares.', type: 'error' }); return; }
 
     try {
-      const endpoint = side === 'buy' ? '/trading/buy' : '/trading/sell';
-      const result = await apiFetch<{ message: string; cash_remaining?: number; cash_balance?: number }>(endpoint, {
+      const result = await apiFetch<{ message: string; cash_remaining?: number; cash_balance?: number }>('/trading/buy', {
         method: 'POST',
         body: JSON.stringify({ ticker: selected.ticker, quantity: qty }),
       });
       const newCash = result.cash_remaining ?? result.cash_balance ?? cash;
       setCash(newCash);
-      apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)).catch(console.error);
       setShares('');
       setFeedback({ msg: result.message, type: 'success' });
       setTimeout(() => setFeedback(null), 4000);
@@ -113,7 +108,7 @@ export default function TradePage() {
 
   const qty = parseFloat(shares) || 0;
   const total = selected ? qty * selected.price : 0;
-  const cashAfter = side === 'buy' ? cash - total : cash + total;
+  const cashAfter = cash - total;
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -161,7 +156,7 @@ export default function TradePage() {
                 <input
                   value={query}
                   onChange={e => { setQuery(e.target.value); setDropdownOpen(true); }}
-                  onFocus={e => { e.target.select(); query && setDropdownOpen(true); }}
+                  onFocus={e => { e.target.select(); setDropdownOpen(true); }}
                   onKeyDown={e => { if (e.key === 'Enter') { const t = query.trim().toUpperCase(); setDropdownOpen(false); selectStock(t, t); } }}
                   placeholder="Search or type any ticker…"
                   className="w-full pl-9 pr-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-500 transition-colors"
@@ -173,7 +168,7 @@ export default function TradePage() {
               >Go</button>
             </div>
             {dropdownOpen && filtered.length > 0 && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 border-t-0 rounded-b-lg z-50 max-h-48 overflow-y-auto shadow-lg">
+              <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 border-t-0 rounded-b-lg z-50 max-h-72 overflow-y-auto shadow-lg">
                 {filtered.map(s => (
                   <div key={s.ticker} onClick={() => selectStock(s.ticker, s.name)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 cursor-pointer text-sm">
                     <span className="font-bold w-12 text-slate-800">{s.ticker}</span>
@@ -201,11 +196,6 @@ export default function TradePage() {
               </div>
             </div>
           )}
-
-          <div className="flex bg-slate-100 rounded-lg p-1 mb-4">
-            <button onClick={() => setSide('buy')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-colors ${side === 'buy' ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Buy</button>
-            <button onClick={() => setSide('sell')} className={`flex-1 py-2 rounded-md text-sm font-bold transition-colors ${side === 'sell' ? 'bg-red-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>Sell</button>
-          </div>
 
           <div className="flex gap-3 mb-3">
             <div className="flex-1">
@@ -236,8 +226,8 @@ export default function TradePage() {
             </div>
           </div>
 
-          <button onClick={submitOrder} className={`w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 ${side === 'buy' ? 'bg-emerald-500' : 'bg-red-500'}`}>
-            {side === 'buy' ? 'Buy Stock' : 'Sell Stock'}
+          <button onClick={submitOrder} className="w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 bg-emerald-500">
+            Buy Stock
           </button>
 
           {feedback && (

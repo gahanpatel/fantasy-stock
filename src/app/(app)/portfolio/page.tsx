@@ -42,6 +42,43 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
+  const [sellModal, setSellModal] = useState<Holding | null>(null);
+  const [sellShares, setSellShares] = useState('');
+  const [sellFeedback, setSellFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [selling, setSelling] = useState(false);
+
+  function openSell(h: Holding) {
+    setSellModal(h);
+    setSellShares('');
+    setSellFeedback(null);
+  }
+
+  async function submitSell() {
+    if (!sellModal) return;
+    const qty = parseFloat(sellShares);
+    if (!qty || qty <= 0) { setSellFeedback({ msg: 'Enter a valid number of shares.', type: 'error' }); return; }
+    if (qty > sellModal.quantity) { setSellFeedback({ msg: `You only have ${sellModal.quantity} shares.`, type: 'error' }); return; }
+    setSelling(true);
+    try {
+      const result = await apiFetch<{ message: string; cash_balance?: number }>('/trading/sell', {
+        method: 'POST',
+        body: JSON.stringify({ ticker: sellModal.ticker, quantity: qty }),
+      });
+      setSellFeedback({ msg: result.message, type: 'success' });
+      // Refresh data
+      const [h, v] = await Promise.all([
+        apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
+        apiFetch<PortfolioValue>('/portfolio/value'),
+      ]);
+      setHoldings(h.holdings);
+      setPv(v);
+      setTimeout(() => setSellModal(null), 1500);
+    } catch (e: unknown) {
+      setSellFeedback({ msg: e instanceof Error ? e.message : 'Sell failed', type: 'error' });
+    } finally {
+      setSelling(false);
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -190,6 +227,7 @@ export default function PortfolioPage() {
                     <Th col={4}>Mkt Value</Th>
                     <Th col={5}>P&L</Th>
                     <Th col={6}>% Chg</Th>
+                    <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
                 <tbody>
@@ -206,10 +244,63 @@ export default function PortfolioPage() {
                       <td className={`px-4 py-3 text-sm font-semibold ${r.pnl_percent >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                         {fmtPct(r.pnl_percent)}
                       </td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => openSell(r)} className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                          Sell
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {/* Sell Modal */}
+            {sellModal && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setSellModal(null); }}>
+                <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm mx-4">
+                  <h2 className="font-bold text-slate-800 text-lg mb-1">Sell {sellModal.ticker}</h2>
+                  <p className="text-xs text-slate-400 mb-4">You own {sellModal.quantity} share{sellModal.quantity !== 1 ? 's' : ''} · current price {fmt(sellModal.current_price)}</p>
+
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Shares to sell</label>
+                  <input
+                    type="number" min="1" max={sellModal.quantity} step="any"
+                    value={sellShares}
+                    onChange={e => setSellShares(e.target.value)}
+                    placeholder="0"
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-red-400 mb-3"
+                    autoFocus
+                  />
+
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    {[0.25, 0.5, 0.75, 1].map(f => (
+                      <button key={f} onClick={() => setSellShares(String(Math.floor(sellModal.quantity * f)))}
+                        className="py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
+                        {f === 1 ? 'All' : `${f * 100}%`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {sellShares && parseFloat(sellShares) > 0 && (
+                    <div className="bg-slate-50 rounded-xl p-3 mb-4 text-sm border border-slate-100">
+                      <div className="flex justify-between py-0.5"><span className="text-slate-400">Proceeds</span><span className="font-bold">{fmt(parseFloat(sellShares) * sellModal.current_price)}</span></div>
+                    </div>
+                  )}
+
+                  {sellFeedback && (
+                    <div className={`mb-3 p-3 rounded-lg text-sm font-semibold ${sellFeedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                      {sellFeedback.msg}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button onClick={() => setSellModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">Cancel</button>
+                    <button onClick={submitSell} disabled={selling} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
+                      {selling ? 'Selling…' : 'Confirm Sell'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </>
