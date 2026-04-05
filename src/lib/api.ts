@@ -1,4 +1,4 @@
-export const API_URL = 'http://localhost:8000';
+export const API_URL = 'https://fantasy-stock-production.up.railway.app';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;
