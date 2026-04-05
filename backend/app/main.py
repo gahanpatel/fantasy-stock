@@ -32,6 +32,7 @@ app.add_middleware(
         "http://localhost:3001",
         "https://fantasy-stock-gahanpatels-projects.vercel.app",
         "https://fantasy-stock-git-main-gahanpatels-projects.vercel.app",
+        "https://successful-quietude-production-2df8.up.railway.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
