@@ -40,19 +40,53 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  useEffect(() => {
-    Promise.all([
-      apiFetch<PortfolioValue>('/portfolio/value'),
-      apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
-      apiFetch<{ leaderboard: LeaderboardEntry[] }>('/leaderboard'),
-      apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
-    ]).then(([v, h, lb, hist]) => {
-      setPv(v);
-      setHoldings(h.holdings);
+  async function fetchLivePrices(rawHoldings: Holding[]): Promise<Holding[]> {
+    const updated = await Promise.all(rawHoldings.map(async h => {
+      try {
+        const res = await fetch(`/api/quote/${h.ticker}`);
+        if (!res.ok) return h;
+        const data = await res.json();
+        if (data.error) return h;
+        const livePrice: number = data.price;
+        const marketValue = livePrice * h.quantity;
+        const pnl = marketValue - h.average_cost * h.quantity;
+        const pnlPercent = (pnl / (h.average_cost * h.quantity)) * 100;
+        return { ...h, current_price: livePrice, market_value: marketValue, pnl, pnl_percent: pnlPercent };
+      } catch {
+        return h;
+      }
+    }));
+    return updated;
+  }
+
+  async function loadData() {
+    try {
+      const [v, h, lb, hist] = await Promise.all([
+        apiFetch<PortfolioValue>('/portfolio/value'),
+        apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
+        apiFetch<{ leaderboard: LeaderboardEntry[] }>('/leaderboard'),
+        apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
+      ]);
+      const liveHoldings = await fetchLivePrices(h.holdings);
+      const liveHoldingsValue = liveHoldings.reduce((sum, h) => sum + h.market_value, 0);
+      setPv({ ...v, holdings_value: liveHoldingsValue, total_value: v.cash + liveHoldingsValue });
+      setHoldings(liveHoldings);
       setLeaderboard(lb.leaderboard);
       setHistory(hist.history);
-    }).catch(console.error).finally(() => setLoading(false));
+      setLastUpdated(new Date());
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const totalReturn = pv ? pv.total_value - STARTING_CASH : 0;
@@ -98,7 +132,10 @@ export default function DashboardPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-800">Dashboard</h1>
-        <p className="text-slate-400 text-sm mt-1">Welcome back, {user?.name ?? '…'}</p>
+        <p className="text-slate-400 text-sm mt-1">
+          Welcome back, {user?.name ?? '…'}
+          {lastUpdated && <span className="ml-2 text-xs text-slate-300">· Live prices as of {lastUpdated.toLocaleTimeString()}</span>}
+        </p>
       </div>
 
       {loading ? (
@@ -159,6 +196,7 @@ export default function DashboardPage() {
                     <tr className="bg-slate-50">
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Stock</th>
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Shares</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Live Price</th>
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Value</th>
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">P&amp;L</th>
                     </tr>
@@ -168,6 +206,7 @@ export default function DashboardPage() {
                       <tr key={h.ticker} className="border-t border-slate-100 hover:bg-slate-50">
                         <td className="px-4 py-3 font-bold text-slate-800">{h.ticker}</td>
                         <td className="px-4 py-3 text-sm">{h.quantity}</td>
+                        <td className="px-4 py-3 text-sm font-semibold">{fmt(h.current_price)}</td>
                         <td className="px-4 py-3 text-sm font-semibold">{fmt(h.market_value)}</td>
                         <td className={`px-4 py-3 text-sm font-semibold ${h.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                           {h.pnl >= 0 ? '▲' : '▼'} {fmt(Math.abs(h.pnl))}
