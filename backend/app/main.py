@@ -7,6 +7,7 @@ from app.trading import router as trading_router
 from app.market import router as market_router
 from app.portfolio import router as portfolio_router, snapshot_all_users
 from app.leaderboard import router as leaderboard_router
+from app.questionnaire import router as questionnaire_router
 
 scheduler = BackgroundScheduler()
 # Run daily at 9:00 PM UTC (4:00 PM ET, after market close)
@@ -42,3 +43,4 @@ app.include_router(trading_router)
 app.include_router(market_router)
 app.include_router(portfolio_router)
 app.include_router(leaderboard_router)
+app.include_router(questionnaire_router)

@@ -39,7 +39,7 @@ export default function LoginPage() {
     setError('');
     const err = await register(regName, regEmail, regPass);
     if (err) { setError(err); setLoading(false); }
-    else router.push('/dashboard');
+    else router.push('/questionnaire');
   }
 
   return (
