@@ -27,14 +27,8 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://fantasy-stock-gahanpatels-projects.vercel.app",
-        "https://fantasy-stock-git-main-gahanpatels-projects.vercel.app",
-        "https://successful-quietude-production-2df8.up.railway.app",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
