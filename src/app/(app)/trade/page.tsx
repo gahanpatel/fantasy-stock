@@ -158,7 +158,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
       </div>
 
       <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-[380px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-[380px_1fr] gap-5 items-stretch">
         {/* Left: Order Form */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
@@ -252,11 +252,12 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
         </div>
 
         {/* Right: Top Gainers */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+          <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 flex-shrink-0">
             <h2 className="font-bold text-slate-800">Top Gainers</h2>
             <span className="text-xs text-slate-400">Top 15 by % change today · click to select</span>
           </div>
+          <div className="overflow-y-auto flex-1">
           <table className="w-full">
             <thead className="bg-slate-50">
               <tr>
@@ -279,6 +280,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
