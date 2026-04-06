@@ -58,15 +58,21 @@ export default function DashboardPage() {
         apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
         apiFetch<{ leaderboard: LeaderboardEntry[] }>('/leaderboard'),
       ]);
-      const liveHoldings = await fetchLivePrices(h.holdings);
-      const liveHoldingsValue = liveHoldings.reduce((sum, h) => sum + h.market_value, 0);
-      setPv({ ...v, holdings_value: liveHoldingsValue, total_value: v.cash + liveHoldingsValue });
-      setHoldings(liveHoldings);
+      // Render immediately with stored prices
+      setPv(v);
+      setHoldings(h.holdings);
       setLeaderboard(lb.leaderboard);
       setLastUpdated(new Date());
+      setLoading(false);
+      // Update live prices in the background
+      fetchLivePrices(h.holdings).then(liveHoldings => {
+        const liveHoldingsValue = liveHoldings.reduce((sum, lh) => sum + lh.market_value, 0);
+        setPv(prev => prev ? { ...prev, holdings_value: liveHoldingsValue, total_value: prev.cash + liveHoldingsValue } : prev);
+        setHoldings(liveHoldings);
+        setLastUpdated(new Date());
+      });
     } catch (e) {
       console.error(e);
-    } finally {
       setLoading(false);
     }
   }

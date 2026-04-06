@@ -91,19 +91,20 @@ export default function PortfolioPage() {
   }
 
   useEffect(() => {
-    apiFetch('/portfolio/adjust-splits', { method: 'POST' }).catch(() => null).finally(() => {
-      Promise.all([
-        apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
-        apiFetch<PortfolioValue>('/portfolio/value'),
-        apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
-        apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
-      ]).then(([h, v, hist, a]) => {
-        setHoldings(h.holdings);
-        setPv(v);
-        setHistory(hist.history);
-        setAnalytics(a);
-      }).catch(console.error).finally(() => setLoading(false));
-    });
+    // Fire-and-forget — don't block data fetching on split adjustment
+    apiFetch('/portfolio/adjust-splits', { method: 'POST' }).catch(() => null);
+
+    Promise.all([
+      apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
+      apiFetch<PortfolioValue>('/portfolio/value'),
+      apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
+      apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
+    ]).then(([h, v, hist, a]) => {
+      setHoldings(h.holdings);
+      setPv(v);
+      setHistory(hist.history);
+      setAnalytics(a);
+    }).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   function handleSort(col: number) {
