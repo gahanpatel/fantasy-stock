@@ -96,7 +96,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
 
   function setQuickQty(frac: number) {
     if (!selected) return;
-    setShares(String(Math.round(cash / selected.price * frac * 10000) / 10000));
+    setShares(String(Math.max(1, Math.floor(cash / selected.price * frac))));
   }
 
   async function submitOrder() {
@@ -213,7 +213,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
           <div className="flex gap-3 mb-3">
             <div className="flex-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Shares</label>
-              <input type="number" min="0.0001" step="any" value={shares} onChange={e => setShares(e.target.value)} placeholder="0" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors" />
+              <input type="number" min="1" step="1" value={shares} onChange={e => setShares(e.target.value)} placeholder="0" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors" />
             </div>
             <div className="flex-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Price / Share</label>

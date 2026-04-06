@@ -8,12 +8,7 @@ router = APIRouter(prefix="/trading", tags=["trading"])
 
 class TradeRequest(BaseModel):
     ticker: str
-    quantity: float
-
-    @property
-    def qty_db(self) -> int | float:
-        """Return int if whole number, float otherwise — avoids '1.0' integer column errors."""
-        return int(self.quantity) if self.quantity == int(self.quantity) else self.quantity
+    quantity: int
 
 
 def get_price_cents(ticker: str) -> int:
@@ -58,7 +53,7 @@ def buy(request: TradeRequest, user_id: str = Depends(get_current_user)):
         supabase.table("positions").insert({
             "user_id": user_id,
             "ticker": ticker,
-            "quantity": request.qty_db,
+            "quantity": request.quantity,
             "average_cost": price_cents
         }).execute()
 
@@ -67,7 +62,7 @@ def buy(request: TradeRequest, user_id: str = Depends(get_current_user)):
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
-        "quantity": request.qty_db,
+        "quantity": request.quantity,
         "price": price_cents,
         "side": "buy",
         "total": total_cost_cents
@@ -112,7 +107,7 @@ def sell(request: TradeRequest, user_id: str = Depends(get_current_user)):
     supabase.table("trades").insert({
         "user_id": user_id,
         "ticker": ticker,
-        "quantity": request.qty_db,
+        "quantity": request.quantity,
         "price": price_cents,
         "side": "sell",
         "total": total_proceeds_cents
