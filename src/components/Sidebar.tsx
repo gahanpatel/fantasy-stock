@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { apiFetch } from '@/lib/api';
 
 const NAV = [
   { href: '/dashboard',     icon: '📊', label: 'Dashboard'   },
@@ -15,6 +17,17 @@ const NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [rank, setRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user?.name) return;
+    apiFetch<{ leaderboard: { display_name: string; rank: number }[] }>('/leaderboard')
+      .then(d => {
+        const me = d.leaderboard.find(e => e.display_name === user.name);
+        if (me) setRank(me.rank);
+      })
+      .catch(() => null);
+  }, [user?.name]);
 
   return (
     <aside className="fixed top-0 left-0 bottom-0 w-56 bg-slate-950 flex flex-col z-50">
@@ -54,7 +67,7 @@ export default function Sidebar() {
           </div>
           <div className="min-w-0">
             <p className="text-white text-sm font-semibold truncate">{user?.name}</p>
-            <p className="text-slate-400 text-xs">Rank #3</p>
+            <p className="text-slate-400 text-xs">{rank ? `Rank #${rank}` : 'Loading…'}</p>
           </div>
         </div>
         <button
