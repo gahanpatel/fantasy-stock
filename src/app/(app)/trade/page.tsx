@@ -160,7 +160,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
       <div className="flex flex-col gap-5">
       <div className="grid grid-cols-[380px_1fr] gap-5 items-stretch">
         {/* Left: Order Form */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full">
           <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
 
           <div className="relative mb-4" ref={dropRef}>
