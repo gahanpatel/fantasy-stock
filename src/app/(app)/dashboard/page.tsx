@@ -5,20 +5,11 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { apiFetch } from '@/lib/api';
 import { fmt, fmtPct } from '@/lib/data';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, Title, Tooltip, Legend, Filler,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
-
 const STARTING_CASH = 100000;
 
 interface PortfolioValue { cash: number; holdings_value: number; total_value: number }
 interface Holding { ticker: string; quantity: number; average_cost: number; current_price: number; market_value: number; pnl: number; pnl_percent: number }
 interface LeaderboardEntry { user_id: string; display_name: string; total_value: number; rank: number }
-interface HistoryEntry { snapshot_date: string; total_value: number }
 
 function StatCard({ label, value, change, sub, changeColor }: {
   label: string; value: string; change: string; sub?: string; changeColor?: string;
@@ -38,7 +29,6 @@ export default function DashboardPage() {
   const [pv, setPv] = useState<PortfolioValue | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -63,18 +53,16 @@ export default function DashboardPage() {
 
   async function loadData() {
     try {
-      const [v, h, lb, hist] = await Promise.all([
+      const [v, h, lb] = await Promise.all([
         apiFetch<PortfolioValue>('/portfolio/value'),
         apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
         apiFetch<{ leaderboard: LeaderboardEntry[] }>('/leaderboard'),
-        apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
       ]);
       const liveHoldings = await fetchLivePrices(h.holdings);
       const liveHoldingsValue = liveHoldings.reduce((sum, h) => sum + h.market_value, 0);
       setPv({ ...v, holdings_value: liveHoldingsValue, total_value: v.cash + liveHoldingsValue });
       setHoldings(liveHoldings);
       setLeaderboard(lb.leaderboard);
-      setHistory(hist.history);
       setLastUpdated(new Date());
     } catch (e) {
       console.error(e);
@@ -92,41 +80,6 @@ export default function DashboardPage() {
   const totalReturn = pv ? pv.total_value - STARTING_CASH : 0;
   const totalReturnPct = (totalReturn / STARTING_CASH) * 100;
   const myRank = leaderboard.find(e => e.display_name === user?.name)?.rank ?? '—';
-
-  const chartLabels = history.length > 0
-    ? ['Start', ...history.map(h => h.snapshot_date)]
-    : ['Start', 'Now'];
-  const chartValues = history.length > 0
-    ? [STARTING_CASH, ...history.map(h => h.total_value)]
-    : [STARTING_CASH, pv?.total_value ?? STARTING_CASH];
-
-  const chartData = {
-    labels: chartLabels,
-    datasets: [{
-      label: 'My Portfolio',
-      data: chartValues,
-      borderColor: '#6366f1',
-      backgroundColor: 'rgba(99,102,241,0.08)',
-      tension: 0.4,
-      pointRadius: 3,
-      pointHoverRadius: 6,
-      fill: true,
-    }],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-      legend: { position: 'top' as const, labels: { font: { size: 12 }, boxWidth: 12 } },
-      tooltip: { mode: 'index' as const, intersect: false, callbacks: { label: (c: { raw: unknown }) => ' ' + fmt(c.raw as number) } },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-      y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 11 }, callback: (v: unknown) => '$' + ((v as number) / 1000).toFixed(0) + 'k' } },
-    },
-    interaction: { mode: 'index' as const, intersect: false },
-  };
 
   return (
     <div>
@@ -168,18 +121,6 @@ export default function DashboardPage() {
               change={`of ${leaderboard.length} players`}
               sub="By total portfolio value"
             />
-          </div>
-
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 mb-4">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-base font-bold text-slate-800">Portfolio Performance</h2>
-                <p className={`text-sm font-semibold mt-0.5 ${totalReturn >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {totalReturn >= 0 ? '+' : ''}{fmt(totalReturn)} ({totalReturn >= 0 ? '+' : ''}{totalReturnPct.toFixed(2)}%) all-time
-                </p>
-              </div>
-            </div>
-            <Line data={chartData} options={chartOptions} />
           </div>
 
           <div className="grid grid-cols-[1fr_280px] gap-4">
