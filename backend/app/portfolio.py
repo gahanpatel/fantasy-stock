@@ -208,30 +208,82 @@ def adjust_splits(user_id: str = Depends(get_current_user)):
 
 @router.get("/analytics")
 def get_analytics(user_id: str = Depends(get_current_user)):
-    STARTING_VALUE = 10_000_000  # $100,000 in cents
-    RISK_FREE_ANNUAL = 0.05      # 5% annual risk-free rate
+    import pandas as pd
+
+    STARTING_CASH = 10_000_000  # $100,000 in cents
+    RISK_FREE_ANNUAL = 0.05
     RISK_FREE_DAILY = RISK_FREE_ANNUAL / 252
 
-    snapshots_result = supabase.table("portfolio_snapshots").select("*").eq("user_id", user_id).order("snapshot_date").execute()
-    snapshots = snapshots_result.data or []
+    # Get all trades ordered by date
+    trades_result = supabase.table("trades").select("*").eq("user_id", user_id).order("created_at").execute()
+    trades = trades_result.data or []
 
-    values = [STARTING_VALUE] + [s["total_value"] for s in snapshots]
-
-    if len(values) < 3:
+    if not trades:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    daily_returns = [(values[i] - values[i - 1]) / values[i - 1] for i in range(1, len(values))]
+    # Get user's current cash
+    user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
+    cash_cents = user_result.data[0]["cash_balance"] if user_result.data else STARTING_CASH
+
+    # Get current positions
+    positions_result = supabase.table("positions").select("*").eq("user_id", user_id).execute()
+    positions = {p["ticker"]: p["quantity"] for p in (positions_result.data or [])}
+
+    if not positions:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    # Find the date range: first trade to today
+    first_trade_date = trades[0]["created_at"][:10]
+    start_date = pd.Timestamp(first_trade_date)
+    end_date = pd.Timestamp.today()
+
+    if (end_date - start_date).days < 5:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    # Download historical close prices for all held tickers
+    tickers = list(positions.keys())
+    try:
+        raw = yf.download(tickers, start=first_trade_date, auto_adjust=True, progress=False)
+        if len(tickers) == 1:
+            price_df = raw[["Close"]].rename(columns={"Close": tickers[0]})
+        else:
+            price_df = raw["Close"]
+        price_df = price_df.ffill().dropna(how="all")
+    except Exception:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    if price_df.empty or len(price_df) < 5:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    # Build daily portfolio value series:
+    # For simplicity use current holdings * historical prices + current cash
+    portfolio_values = []
+    for date, row in price_df.iterrows():
+        holdings_value = sum(
+            positions.get(t, 0) * (row[t] * 100 if not pd.isna(row.get(t, float("nan"))) else 0)
+            for t in tickers
+        )
+        total = holdings_value + cash_cents
+        portfolio_values.append(total)
+
+    if len(portfolio_values) < 5:
+        return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
+
+    # Calculate daily returns
+    daily_returns = [
+        (portfolio_values[i] - portfolio_values[i - 1]) / portfolio_values[i - 1]
+        for i in range(1, len(portfolio_values))
+    ]
 
     n = len(daily_returns)
-    mean_return = sum(daily_returns) / n
-    variance = sum((r - mean_return) ** 2 for r in daily_returns) / (n - 1)
+    mean_r = sum(daily_returns) / n
+    variance = sum((r - mean_r) ** 2 for r in daily_returns) / max(n - 1, 1)
     std_dev = variance ** 0.5
 
-    excess_returns = [r - RISK_FREE_DAILY for r in daily_returns]
-    mean_excess = sum(excess_returns) / n
+    mean_excess = mean_r - RISK_FREE_DAILY
     sharpe = (mean_excess / std_dev) * (252 ** 0.5) if std_dev > 0 else 0
 
-    annualized_return = ((values[-1] / values[0]) ** (252 / n) - 1) * 100
+    annualized_return = ((portfolio_values[-1] / portfolio_values[0]) ** (252 / n) - 1) * 100
     annualized_vol = std_dev * (252 ** 0.5) * 100
 
     return {
