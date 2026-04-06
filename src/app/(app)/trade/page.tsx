@@ -160,7 +160,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
       <div className="flex flex-col gap-5">
       <div className="grid grid-cols-[380px_1fr] gap-5 items-stretch">
         {/* Left: Order Form */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full flex flex-col">
           <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
 
           <div className="relative mb-4" ref={dropRef}>
@@ -240,7 +240,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
             </div>
           </div>
 
-          <button onClick={submitOrder} className="w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 bg-emerald-500">
+          <button onClick={submitOrder} className="mt-auto w-full py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90 bg-emerald-500">
             Buy Stock
           </button>
 
