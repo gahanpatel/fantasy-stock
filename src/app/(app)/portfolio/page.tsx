@@ -291,7 +291,7 @@ export default function PortfolioPage() {
 
                   <div className="grid grid-cols-4 gap-2 mb-4">
                     {[0.25, 0.5, 0.75, 1].map(f => (
-                      <button key={f} onClick={() => setSellShares(String(Math.floor(sellModal.quantity * f)))}
+                      <button key={f} onClick={() => setSellShares(String(Math.round(sellModal.quantity * f * 10000) / 10000))}
                         className="py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
                         {f === 1 ? 'All' : `${f * 100}%`}
                       </button>
