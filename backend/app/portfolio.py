@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.config import supabase
 from app.auth import get_current_user
 import yfinance as yf
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
@@ -127,6 +128,82 @@ def _upsert_snapshot(user_id: str, date_str: str, total_cents: int):
             "snapshot_date": date_str,
             "total_value": total_cents
         }).execute()
+
+
+@router.post("/adjust-splits")
+def adjust_splits(user_id: str = Depends(get_current_user)):
+    positions = supabase.table("positions").select("*").eq("user_id", user_id).execute().data or []
+    if not positions:
+        return {"adjusted": []}
+
+    # Get earliest trade date per ticker so we only look at splits since then
+    trades = supabase.table("trades").select("ticker, created_at").eq("user_id", user_id).execute().data or []
+    earliest: dict[str, str] = {}
+    for t in trades:
+        ticker = t["ticker"]
+        if ticker not in earliest or t["created_at"] < earliest[ticker]:
+            earliest[ticker] = t["created_at"]
+
+    adjusted = []
+    for pos in positions:
+        ticker = pos["ticker"]
+        try:
+            since_str = earliest.get(ticker)
+            if not since_str:
+                continue
+            since_date = datetime.fromisoformat(since_str.replace("Z", "+00:00")).date()
+
+            splits = yf.Ticker(ticker).splits  # pandas Series indexed by date
+            if splits.empty:
+                continue
+
+            # Filter splits that occurred after the first trade
+            recent_splits = splits[splits.index.date > since_date]
+            if recent_splits.empty:
+                continue
+
+            # Compound all split ratios together
+            total_ratio = 1.0
+            for ratio in recent_splits:
+                total_ratio *= ratio
+
+            if abs(total_ratio - 1.0) < 0.001:
+                continue
+
+            new_quantity = pos["quantity"] * total_ratio
+            new_avg_cost = int(round(pos["average_cost"] / total_ratio))
+
+            supabase.table("positions").update({
+                "quantity": new_quantity,
+                "average_cost": new_avg_cost,
+            }).eq("user_id", user_id).eq("ticker", ticker).execute()
+
+            # Also adjust all historical trade records for this ticker
+            ticker_trades = supabase.table("trades").select("*").eq("user_id", user_id).eq("ticker", ticker).execute().data or []
+            for trade in ticker_trades:
+                trade_date = datetime.fromisoformat(trade["created_at"].replace("Z", "+00:00")).date()
+                # Only apply splits that happened after this specific trade
+                trade_splits = splits[splits.index.date > trade_date]
+                if trade_splits.empty:
+                    continue
+                trade_ratio = 1.0
+                for r in trade_splits:
+                    trade_ratio *= r
+                if abs(trade_ratio - 1.0) < 0.001:
+                    continue
+                new_trade_qty = trade["quantity"] * trade_ratio
+                new_trade_price = int(round(trade["price"] / trade_ratio))
+                supabase.table("trades").update({
+                    "quantity": new_trade_qty,
+                    "price": new_trade_price,
+                    "total": int(round(new_trade_qty * new_trade_price)),
+                }).eq("id", trade["id"]).execute()
+
+            adjusted.append({"ticker": ticker, "ratio": total_ratio, "new_quantity": new_quantity, "new_avg_cost": new_avg_cost / 100})
+        except Exception:
+            continue
+
+    return {"adjusted": adjusted}
 
 
 @router.get("/analytics")
