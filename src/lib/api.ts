@@ -19,6 +19,10 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('tt_session');
+      window.location.href = '/login';
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { detail?: string }).detail ?? 'Request failed');
   }
