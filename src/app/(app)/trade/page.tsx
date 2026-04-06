@@ -72,7 +72,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
 
   const topGainers = [...STOCKS]
     .sort((a, b) => (liveData[b.ticker]?.change_percent ?? b.chg) - (liveData[a.ticker]?.change_percent ?? a.chg))
-    .slice(0, 15);
+    .slice(0, 10);
 
   async function selectStock(ticker: string, name: string) {
     const cleanTicker = ticker.split(/[\s—–-]/)[0].toUpperCase();
@@ -161,9 +161,9 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
       <div className="grid grid-cols-[380px_1fr] gap-5 items-stretch">
         {/* Left: Order Form */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-full flex flex-col">
-          <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
+          <h2 className="font-bold text-slate-800 mb-3">Place Order</h2>
 
-          <div className="relative mb-4" ref={dropRef}>
+          <div className="relative mb-3" ref={dropRef}>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
@@ -193,25 +193,23 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
             )}
           </div>
 
-          {loadingQuote && <p className="text-slate-400 text-sm mb-4">Fetching live price…</p>}
+          {loadingQuote && <p className="text-slate-400 text-sm mb-3">Fetching live price…</p>}
           {selected && !loadingQuote && (
-            <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xl font-extrabold text-slate-800">{selected.ticker}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{selected.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-extrabold text-slate-800">{fmt(selected.price)}</p>
-                  <p className={`text-xs font-semibold mt-0.5 ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {selected.change >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(selected.change_percent))}
-                  </p>
-                </div>
+            <div className="flex justify-between items-center bg-slate-50 rounded-lg px-3 py-2 mb-3 border border-slate-200">
+              <div>
+                <span className="font-extrabold text-slate-800 text-sm">{selected.ticker}</span>
+                <span className="text-xs text-slate-400 ml-2">{selected.name}</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold text-slate-800 text-sm">{fmt(selected.price)}</span>
+                <span className={`text-xs font-semibold ml-2 ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {selected.change >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(selected.change_percent))}
+                </span>
               </div>
             </div>
           )}
 
-          <div className="flex gap-3 mb-3">
+          <div className="flex gap-3 mb-2">
             <div className="flex-1">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Shares</label>
               <input type="number" min="1" step="1" value={shares} onChange={e => setShares(e.target.value)} placeholder="0" className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500 transition-colors" />
@@ -222,7 +220,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-4 gap-2 mb-3">
             {[0.25, 0.5, 0.75, 1].map(f => (
               <button key={f} onClick={() => setQuickQty(f)} className="py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-colors">
                 {f === 1 ? 'Max' : `${f * 100}%`}
@@ -230,11 +228,9 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
             ))}
           </div>
 
-          <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
-            <div className="flex justify-between text-sm py-1"><span className="text-slate-500">Price per share</span><span className="font-medium">{selected ? fmt(selected.price) : '—'}</span></div>
-            <div className="flex justify-between text-sm py-1"><span className="text-slate-500">Shares</span><span className="font-medium">{qty || '—'}</span></div>
-            <div className="flex justify-between text-sm font-bold py-2 border-t border-slate-200 mt-1"><span>Total cost</span><span>{qty && selected ? fmt(total) : '—'}</span></div>
-            <div className="flex justify-between text-xs mt-1">
+          <div className="bg-slate-50 rounded-xl px-3 py-2.5 mb-3 border border-slate-100">
+            <div className="flex justify-between text-sm font-bold py-1"><span>Total cost</span><span>{qty && selected ? fmt(total) : '—'}</span></div>
+            <div className="flex justify-between text-xs">
               <span className="text-slate-400">Cash after trade</span>
               <span className={cashAfter < 0 ? 'text-red-500 font-semibold' : 'text-slate-400'}>{fmt(Math.max(0, cashAfter))}</span>
             </div>
