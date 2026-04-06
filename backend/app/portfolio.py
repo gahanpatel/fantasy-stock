@@ -237,7 +237,7 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     start_date = pd.Timestamp(first_trade_date)
     end_date = pd.Timestamp.today()
 
-    if (end_date - start_date).days < 5:
+    if (end_date - start_date).days < 1:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
     # Download historical close prices for all held tickers
@@ -250,7 +250,7 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     except Exception:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    if price_df.empty or len(price_df) < 5:
+    if price_df.empty or len(price_df) < 2:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
     # Build daily portfolio value series:
@@ -264,7 +264,7 @@ def get_analytics(user_id: str = Depends(get_current_user)):
         total = holdings_value + cash_cents
         portfolio_values.append(total)
 
-    if len(portfolio_values) < 5:
+    if len(portfolio_values) < 2:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
     # Calculate daily returns
