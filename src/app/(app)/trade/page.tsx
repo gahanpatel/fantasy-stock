@@ -251,7 +251,7 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
           <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 flex-shrink-0">
             <h2 className="font-bold text-slate-800">Top Gainers</h2>
-            <span className="text-xs text-slate-400">Top 15 by % change today · click to select</span>
+            <span className="text-xs text-slate-400">Top 10 by % change today · click to select</span>
           </div>
           <div className="overflow-y-auto flex-1">
           <table className="w-full">
