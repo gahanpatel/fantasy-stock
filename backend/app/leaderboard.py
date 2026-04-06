@@ -9,7 +9,7 @@ router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 @router.get("")
 def get_leaderboard(user_id: str = Depends(get_current_user)):
     users_result = supabase.table("users").select("id, display_name, cash_balance").execute()
-    TEST_NAMES = {"test", "api test"}
+    TEST_NAMES = {"test", "api test", "apitest"}
     users = [u for u in (users_result.data or []) if u.get("display_name", "").strip().lower() not in TEST_NAMES]
 
     rankings = []
