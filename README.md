@@ -3,8 +3,8 @@
 ## 👥 Team Members
 - Gahan - Full Stack
 - Shloka - Frontend
-- Pablo - Database
-- Zach - Backend
+- Pablo - Quant
+- Zach - Database
 
 ---
 
