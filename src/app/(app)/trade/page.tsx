@@ -157,9 +157,10 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
         <p className="text-slate-400 text-sm mt-1">Buy and sell stocks at live prices</p>
       </div>
 
-      <div className="grid grid-cols-[380px_1fr] gap-5">
+      <div className="flex flex-col gap-5">
+      <div className="grid grid-cols-[380px_1fr] gap-5 items-start">
         {/* Left: Order Form */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 h-fit">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
           <h2 className="font-bold text-slate-800 mb-5">Place Order</h2>
 
           <div className="relative mb-4" ref={dropRef}>
@@ -250,74 +251,73 @@ const [liveData, setLiveData] = useState<Record<string, { price: number; change_
           )}
         </div>
 
-        {/* Right: Stock List + Metrics Panel */}
-        <div className="flex flex-col gap-5">
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Top Gainers</h2>
-              <span className="text-xs text-slate-400">Top 15 by % change today · click to select</span>
-            </div>
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  {['Symbol', 'Company', 'Sector', 'Price', 'Change'].map(h => (
-                    <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {topGainers.map(s => (
-                  <tr key={s.ticker} onClick={() => selectStock(s.ticker, s.name)} className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}>
-                    <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
-                    <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-700">{fmt(liveData[s.ticker]?.price ?? s.price)}</td>
-                    <td className={`px-4 py-3 text-sm font-semibold ${(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                      {(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(liveData[s.ticker]?.change_percent ?? s.chg))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {/* Right: Top Gainers */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
+            <h2 className="font-bold text-slate-800">Top Gainers</h2>
+            <span className="text-xs text-slate-400">Top 15 by % change today · click to select</span>
           </div>
-
-          {/* Key Metrics Panel */}
-          {selected && !loadingQuote && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="font-bold text-slate-800">{selected.ticker} — Key Metrics</h2>
-                  <p className="text-xs text-slate-400 mt-0.5">{selected.name}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-extrabold text-slate-800">{fmt(selected.price)}</p>
-                  <p className={`text-xs font-semibold ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {selected.change >= 0 ? '▲' : '▼'} {fmtNum(Math.abs(selected.change))} ({fmtPct(Math.abs(selected.change_percent))})
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-3">
-                {[
-                  { label: 'Market Cap',     value: fmtCap(selected.market_cap) },
-                  { label: 'Beta',           value: fmtNum(selected.beta) },
-                  { label: 'P/E Ratio',      value: fmtNum(selected.pe_ratio) },
-                  { label: 'Forward P/E',    value: fmtNum(selected.forward_pe) },
-                  { label: 'EPS',            value: selected.eps !== null ? `$${fmtNum(selected.eps)}` : '—' },
-                  { label: '52W High',       value: selected.week_52_high !== null ? fmt(selected.week_52_high) : '—' },
-                  { label: '52W Low',        value: selected.week_52_low !== null ? fmt(selected.week_52_low) : '—' },
-                  { label: 'Avg Volume',     value: fmtVol(selected.avg_volume) },
-                  { label: 'Dividend Yield', value: selected.dividend_yield !== null ? `${fmtNum(selected.dividend_yield)}%` : '—' },
-                  { label: 'Price/Book',     value: fmtNum(selected.price_to_book) },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
-                    <p className="text-sm font-extrabold text-slate-800">{value}</p>
-                  </div>
+          <table className="w-full">
+            <thead className="bg-slate-50">
+              <tr>
+                {['Symbol', 'Company', 'Sector', 'Price', 'Change'].map(h => (
+                  <th key={h} className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">{h}</th>
                 ))}
-              </div>
-            </div>
-          )}
+              </tr>
+            </thead>
+            <tbody>
+              {topGainers.map(s => (
+                <tr key={s.ticker} onClick={() => selectStock(s.ticker, s.name)} className={`border-t border-slate-100 hover:bg-slate-50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50' : ''}`}>
+                  <td className="px-4 py-3 font-bold text-slate-800 text-sm">{s.ticker}</td>
+                  <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
+                  <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-slate-700">{fmt(liveData[s.ticker]?.price ?? s.price)}</td>
+                  <td className={`px-4 py-3 text-sm font-semibold ${(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                    {(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(liveData[s.ticker]?.change_percent ?? s.chg))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
+
+      {/* Key Metrics — full width below both columns */}
+      {selected && !loadingQuote && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-bold text-slate-800">{selected.ticker} — Key Metrics</h2>
+              <p className="text-xs text-slate-400 mt-0.5">{selected.name}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xl font-extrabold text-slate-800">{fmt(selected.price)}</p>
+              <p className={`text-xs font-semibold ${selected.change >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {selected.change >= 0 ? '▲' : '▼'} {fmtNum(Math.abs(selected.change))} ({fmtPct(Math.abs(selected.change_percent))})
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {[
+              { label: 'Market Cap',     value: fmtCap(selected.market_cap) },
+              { label: 'Beta',           value: fmtNum(selected.beta) },
+              { label: 'P/E Ratio',      value: fmtNum(selected.pe_ratio) },
+              { label: 'Forward P/E',    value: fmtNum(selected.forward_pe) },
+              { label: 'EPS',            value: selected.eps !== null ? `$${fmtNum(selected.eps)}` : '—' },
+              { label: '52W High',       value: selected.week_52_high !== null ? fmt(selected.week_52_high) : '—' },
+              { label: '52W Low',        value: selected.week_52_low !== null ? fmt(selected.week_52_low) : '—' },
+              { label: 'Avg Volume',     value: fmtVol(selected.avg_volume) },
+              { label: 'Dividend Yield', value: selected.dividend_yield !== null ? `${fmtNum(selected.dividend_yield)}%` : '—' },
+              { label: 'Price/Book',     value: fmtNum(selected.price_to_book) },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</p>
+                <p className="text-sm font-extrabold text-slate-800">{value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );
