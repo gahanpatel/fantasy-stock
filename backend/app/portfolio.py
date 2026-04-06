@@ -243,11 +243,9 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     # Download historical close prices for all held tickers
     tickers = list(positions.keys())
     try:
-        raw = yf.download(tickers, start=first_trade_date, auto_adjust=True, progress=False)
-        if len(tickers) == 1:
-            price_df = raw[["Close"]].rename(columns={"Close": tickers[0]})
-        else:
-            price_df = raw["Close"]
+        raw = yf.download(tickers, start=first_trade_date, auto_adjust=True, progress=False, group_by="ticker")
+        # Always extract Close prices into a flat DataFrame keyed by ticker
+        price_df = pd.DataFrame({t: raw[t]["Close"] for t in tickers if t in raw.columns.get_level_values(0)})
         price_df = price_df.ffill().dropna(how="all")
     except Exception:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
@@ -260,7 +258,7 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     portfolio_values = []
     for date, row in price_df.iterrows():
         holdings_value = sum(
-            positions.get(t, 0) * (row[t] * 100 if not pd.isna(row.get(t, float("nan"))) else 0)
+            positions.get(t, 0) * (row[t] * 100 if t in row and not pd.isna(row[t]) else 0)
             for t in tickers
         )
         total = holdings_value + cash_cents
