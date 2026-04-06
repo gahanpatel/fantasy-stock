@@ -72,11 +72,72 @@ export const STOCKS: Stock[] = [
   { ticker: 'GE',    name: 'GE Aerospace',                  price: 0, chg: 0, sector: 'Industrials',            vol: '' },
   { ticker: 'RTX',   name: 'RTX Corp',                      price: 0, chg: 0, sector: 'Industrials',            vol: '' },
   { ticker: 'UPS',   name: 'United Parcel Service',         price: 0, chg: 0, sector: 'Industrials',            vol: '' },
+  // Real Estate
+  { ticker: 'AMT',   name: 'American Tower Corp',           price: 0, chg: 0, sector: 'Real Estate',            vol: '' },
+  { ticker: 'PLD',   name: 'Prologis Inc',                  price: 0, chg: 0, sector: 'Real Estate',            vol: '' },
+  { ticker: 'EQIX',  name: 'Equinix Inc',                   price: 0, chg: 0, sector: 'Real Estate',            vol: '' },
+  { ticker: 'SPG',   name: 'Simon Property Group',          price: 0, chg: 0, sector: 'Real Estate',            vol: '' },
+  { ticker: 'O',     name: 'Realty Income Corp',            price: 0, chg: 0, sector: 'Real Estate',            vol: '' },
+  // Utilities
+  { ticker: 'NEE',   name: 'NextEra Energy Inc',            price: 0, chg: 0, sector: 'Utilities',              vol: '' },
+  { ticker: 'DUK',   name: 'Duke Energy Corp',              price: 0, chg: 0, sector: 'Utilities',              vol: '' },
+  { ticker: 'SO',    name: 'Southern Co',                   price: 0, chg: 0, sector: 'Utilities',              vol: '' },
+  // Materials
+  { ticker: 'LIN',   name: 'Linde PLC',                     price: 0, chg: 0, sector: 'Materials',              vol: '' },
+  { ticker: 'APD',   name: 'Air Products & Chemicals',      price: 0, chg: 0, sector: 'Materials',              vol: '' },
+  { ticker: 'NEM',   name: 'Newmont Corp',                  price: 0, chg: 0, sector: 'Materials',              vol: '' },
+  { ticker: 'FCX',   name: 'Freeport-McMoRan Inc',          price: 0, chg: 0, sector: 'Materials',              vol: '' },
+  // Communication Services
+  { ticker: 'NFLX',  name: 'Netflix Inc',                   price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'DIS',   name: 'Walt Disney Co',                price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'CMCSA', name: 'Comcast Corp',                  price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'T',     name: 'AT&T Inc',                      price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'VZ',    name: 'Verizon Communications',        price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'SNAP',  name: 'Snap Inc',                      price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  { ticker: 'SPOT',  name: 'Spotify Technology',            price: 0, chg: 0, sector: 'Communication Services', vol: '' },
+  // More Technology
+  { ticker: 'CRWD',  name: 'CrowdStrike Holdings',          price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'PANW',  name: 'Palo Alto Networks',            price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'DDOG',  name: 'Datadog Inc',                   price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'ZS',    name: 'Zscaler Inc',                   price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'HUBS',  name: 'HubSpot Inc',                   price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'TWLO',  name: 'Twilio Inc',                    price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'U',     name: 'Unity Software',                price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'RBLX',  name: 'Roblox Corp',                   price: 0, chg: 0, sector: 'Technology',             vol: '' },
+  { ticker: 'HOOD',  name: 'Robinhood Markets',             price: 0, chg: 0, sector: 'Financials',             vol: '' },
+  // More Health Care
+  { ticker: 'CVS',   name: 'CVS Health Corp',               price: 0, chg: 0, sector: 'Health Care',            vol: '' },
+  { ticker: 'MDT',   name: 'Medtronic PLC',                 price: 0, chg: 0, sector: 'Health Care',            vol: '' },
+  { ticker: 'AMGN',  name: 'Amgen Inc',                     price: 0, chg: 0, sector: 'Health Care',            vol: '' },
+  { ticker: 'GILD',  name: 'Gilead Sciences',               price: 0, chg: 0, sector: 'Health Care',            vol: '' },
+  { ticker: 'MRNA',  name: 'Moderna Inc',                   price: 0, chg: 0, sector: 'Health Care',            vol: '' },
+  // More Industrials
+  { ticker: 'HON',   name: 'Honeywell International',       price: 0, chg: 0, sector: 'Industrials',            vol: '' },
+  { ticker: 'LMT',   name: 'Lockheed Martin Corp',          price: 0, chg: 0, sector: 'Industrials',            vol: '' },
+  { ticker: 'DE',    name: 'Deere & Company',               price: 0, chg: 0, sector: 'Industrials',            vol: '' },
+  { ticker: 'FDX',   name: 'FedEx Corp',                    price: 0, chg: 0, sector: 'Industrials',            vol: '' },
+  // More Energy
+  { ticker: 'SLB',   name: 'SLB (Schlumberger)',            price: 0, chg: 0, sector: 'Energy',                 vol: '' },
+  { ticker: 'EOG',   name: 'EOG Resources',                 price: 0, chg: 0, sector: 'Energy',                 vol: '' },
+  // More Consumer
+  { ticker: 'LOW',   name: 'Lowe\'s Companies',             price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'TJX',   name: 'TJX Companies',                 price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'BKNG',  name: 'Booking Holdings',              price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'MAR',   name: 'Marriott International',        price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'F',     name: 'Ford Motor Co',                 price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'GM',    name: 'General Motors Co',             price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'ABNB',  name: 'Airbnb Inc',                    price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
+  { ticker: 'LYFT',  name: 'Lyft Inc',                      price: 0, chg: 0, sector: 'Consumer Discretionary', vol: '' },
   // ETFs
   { ticker: 'SPY',   name: 'SPDR S&P 500 ETF',              price: 0, chg: 0, sector: 'ETF',                    vol: '' },
   { ticker: 'QQQ',   name: 'Invesco QQQ Trust',             price: 0, chg: 0, sector: 'ETF',                    vol: '' },
   { ticker: 'IWM',   name: 'iShares Russell 2000 ETF',      price: 0, chg: 0, sector: 'ETF',                    vol: '' },
   { ticker: 'DIA',   name: 'SPDR Dow Jones ETF',            price: 0, chg: 0, sector: 'ETF',                    vol: '' },
+  { ticker: 'GLD',   name: 'SPDR Gold Shares',              price: 0, chg: 0, sector: 'ETF',                    vol: '' },
+  { ticker: 'XLF',   name: 'Financial Select Sector SPDR',  price: 0, chg: 0, sector: 'ETF',                    vol: '' },
+  { ticker: 'XLK',   name: 'Technology Select Sector SPDR', price: 0, chg: 0, sector: 'ETF',                    vol: '' },
+  { ticker: 'XLE',   name: 'Energy Select Sector SPDR',     price: 0, chg: 0, sector: 'ETF',                    vol: '' },
+  { ticker: 'ARKK',  name: 'ARK Innovation ETF',            price: 0, chg: 0, sector: 'ETF',                    vol: '' },
 ];
 
 

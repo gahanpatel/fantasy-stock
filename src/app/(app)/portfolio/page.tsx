@@ -21,8 +21,12 @@ const SECTOR_COLORS: Record<string, string> = {
   'Consumer Staples':      '#84cc16',
   Energy:                  '#ef4444',
   Industrials:             '#3b82f6',
-  ETF:                     '#a855f7',
-  Other:                   '#94a3b8',
+  ETF:                          '#a855f7',
+  'Real Estate':                '#06b6d4',
+  Utilities:                    '#eab308',
+  Materials:                    '#78716c',
+  'Communication Services':     '#ec4899',
+  Other:                        '#94a3b8',
 };
 
 interface Holding {
