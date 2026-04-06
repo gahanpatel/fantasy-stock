@@ -10,7 +10,6 @@ const NAV = [
   { href: '/trade',         icon: '⚡', label: 'Trade'       },
   { href: '/leaderboard',   icon: '🏆', label: 'Leaderboard' },
   { href: '/history',       icon: '🕒', label: 'History'     },
-  { href: '/questionnaire', icon: '📋', label: 'My Profile'  },
 ];
 
 export default function Sidebar() {
