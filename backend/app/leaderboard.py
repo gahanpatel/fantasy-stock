@@ -1,3 +1,4 @@
+import time
 from fastapi import APIRouter, Depends
 from app.config import get_supabase
 from app.auth import get_current_user
@@ -5,9 +6,17 @@ from app.portfolio import fetch_price_cents
 
 router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 
+_leaderboard_cache: tuple[dict, float] | None = None
+_LEADERBOARD_TTL = 60  # 1 minute
+
 
 @router.get("")
 async def get_leaderboard(user_id: str = Depends(get_current_user)):
+    global _leaderboard_cache
+    now = time.time()
+    if _leaderboard_cache and now - _leaderboard_cache[1] < _LEADERBOARD_TTL:
+        return _leaderboard_cache[0]
+
     supabase = await get_supabase()
     users_result = await supabase.table("users").select("id, display_name, cash_balance").execute()
     TEST_NAMES = {"test", "api test", "apitest"}
@@ -32,4 +41,6 @@ async def get_leaderboard(user_id: str = Depends(get_current_user)):
     for i, entry in enumerate(rankings):
         entry["rank"] = i + 1
 
-    return {"leaderboard": rankings}
+    result = {"leaderboard": rankings}
+    _leaderboard_cache = (result, now)
+    return result

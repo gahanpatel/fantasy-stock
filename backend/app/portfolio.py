@@ -1,4 +1,5 @@
 import os
+import time
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.config import get_supabase
 from app.auth import get_current_user
@@ -7,13 +8,23 @@ from datetime import datetime, timezone
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
+_price_cache: dict[str, tuple[int, float]] = {}
+_PRICE_TTL = 180  # 3 minutes
+
 
 def fetch_price_cents(ticker: str) -> int:
+    now = time.time()
+    if ticker in _price_cache:
+        cached_price, ts = _price_cache[ticker]
+        if now - ts < _PRICE_TTL:
+            return cached_price
     try:
         price = yf.Ticker(ticker).fast_info.last_price
-        return int(round(price * 100)) if price else 0
+        price_cents = int(round(price * 100)) if price else 0
     except Exception:
-        return 0
+        price_cents = 0
+    _price_cache[ticker] = (price_cents, now)
+    return price_cents
 
 
 @router.get("/holdings")
