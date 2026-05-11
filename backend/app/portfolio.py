@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends
+import os
+from fastapi import APIRouter, HTTPException, Depends, Request
 from app.config import supabase
 from app.auth import get_current_user
 import yfinance as yf
@@ -93,8 +94,18 @@ def save_snapshot(user_id: str = Depends(get_current_user)):
     return {"snapshot_date": today, "total_value": total_cents / 100}
 
 
+@router.get("/snapshot-all")
+def cron_snapshot_all(request: Request):
+    """Called by Vercel Cron at 21:00 UTC daily."""
+    secret = os.getenv("CRON_SECRET", "")
+    if secret and request.headers.get("Authorization") != f"Bearer {secret}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    snapshot_all_users()
+    return {"ok": True}
+
+
 def snapshot_all_users():
-    """Called by the daily scheduler — snapshots every user's portfolio."""
+    """Snapshots every user's portfolio."""
     from datetime import date
     today = date.today().isoformat()
     users = supabase.table("users").select("id").execute().data or []

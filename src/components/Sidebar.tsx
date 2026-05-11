@@ -67,7 +67,7 @@ export default function Sidebar() {
           </div>
           <div className="min-w-0">
             <p className="text-white text-sm font-semibold truncate">{user?.name}</p>
-            <p className="text-slate-400 text-xs">{rank ? `Rank #${rank}` : 'Loading…'}</p>
+            <p className="text-slate-400 text-xs">{rank !== null ? `Rank #${rank}` : '—'}</p>
           </div>
         </div>
         <button

@@ -22,11 +22,12 @@ export default function HistoryPage() {
   const [filterPeriod, setFilterPeriod] = useState('all');
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<{ trades: Trade[] }>('/portfolio/trades')
       .then(d => setTrades(d.trades))
-      .catch(console.error)
+      .catch(() => setError('Could not reach the server. Your data is safe — Railway or Supabase may be temporarily offline.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -82,6 +83,16 @@ export default function HistoryPage() {
         <h1 className="text-2xl font-extrabold text-slate-800">Transaction History</h1>
         <p className="text-slate-400 text-sm mt-1">All your trades since account creation</p>
       </div>
+
+      {error && (
+        <div className="mb-5 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+          <span className="text-lg leading-none">⚠</span>
+          <div>
+            <p className="font-bold">Server unreachable</p>
+            <p className="font-normal text-amber-700 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4 mb-5">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">

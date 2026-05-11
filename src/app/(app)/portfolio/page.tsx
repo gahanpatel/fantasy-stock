@@ -49,6 +49,7 @@ export default function PortfolioPage() {
   const [pv, setPv] = useState<PortfolioValue | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
@@ -104,7 +105,9 @@ export default function PortfolioPage() {
       setPv(v);
       setHistory(hist.history);
       setAnalytics(a);
-    }).catch(console.error).finally(() => setLoading(false));
+    }).catch(() => {
+      setError('Could not reach the server. Your data is safe — Railway or Supabase may be temporarily offline.');
+    }).finally(() => setLoading(false));
   }, []);
 
   function handleSort(col: number) {
@@ -176,6 +179,16 @@ export default function PortfolioPage() {
           {holdings.length} position{holdings.length !== 1 ? 's' : ''} · {pv ? fmt(pv.holdings_value) : '…'} invested · {pv ? fmt(pv.cash) : '…'} cash
         </p>
       </div>
+
+      {error && (
+        <div className="mb-5 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+          <span className="text-lg leading-none">⚠</span>
+          <div>
+            <p className="font-bold">Server unreachable</p>
+            <p className="font-normal text-amber-700 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-slate-400">Loading…</p>

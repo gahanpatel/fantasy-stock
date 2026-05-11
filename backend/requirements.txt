@@ -7,4 +7,3 @@ supabase
 yfinance
 python-dotenv
 pydantic
-apscheduler

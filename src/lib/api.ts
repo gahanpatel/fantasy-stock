@@ -1,4 +1,4 @@
-export const API_URL = 'https://successful-quietude-production-2df8.up.railway.app';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://fantasy-stock-rtq2.vercel.app';
 
 export function getToken(): string | null {
   if (typeof window === 'undefined') return null;

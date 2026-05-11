@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   async function fetchLivePrices(rawHoldings: Holding[]): Promise<Holding[]> {
@@ -73,6 +74,7 @@ export default function DashboardPage() {
       });
     } catch (e) {
       console.error(e);
+      setError('Could not reach the server. Your data is safe — Railway or Supabase may be temporarily offline.');
       setLoading(false);
     }
   }
@@ -96,6 +98,16 @@ export default function DashboardPage() {
           {lastUpdated && <span className="ml-2 text-xs text-slate-300">· Live prices as of {lastUpdated.toLocaleTimeString()}</span>}
         </p>
       </div>
+
+      {error && (
+        <div className="mb-5 flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+          <span className="text-lg leading-none">⚠</span>
+          <div>
+            <p className="font-bold">Server unreachable</p>
+            <p className="font-normal text-amber-700 mt-0.5">{error}</p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-slate-400">Loading…</p>
