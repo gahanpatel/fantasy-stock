@@ -1,6 +1,6 @@
 import os
 from fastapi import APIRouter, HTTPException, Depends, Request
-from app.config import supabase
+from app.config import get_supabase
 from app.auth import get_current_user
 import yfinance as yf
 from datetime import datetime, timezone
@@ -17,8 +17,9 @@ def fetch_price_cents(ticker: str) -> int:
 
 
 @router.get("/holdings")
-def get_holdings(user_id: str = Depends(get_current_user)):
-    positions_result = supabase.table("positions").select("*").eq("user_id", user_id).execute()
+async def get_holdings(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    positions_result = await supabase.table("positions").select("*").eq("user_id", user_id).execute()
     positions = positions_result.data or []
 
     holdings = []
@@ -43,13 +44,14 @@ def get_holdings(user_id: str = Depends(get_current_user)):
 
 
 @router.get("/value")
-def get_portfolio_value(user_id: str = Depends(get_current_user)):
-    user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
+async def get_portfolio_value(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    user_result = await supabase.table("users").select("cash_balance").eq("id", user_id).execute()
     if not user_result.data:
         raise HTTPException(status_code=404, detail="User not found")
     cash_cents = user_result.data[0]["cash_balance"]
 
-    positions_result = supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute()
+    positions_result = await supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute()
     positions = positions_result.data or []
 
     holdings_cents = int(round(sum(fetch_price_cents(p["ticker"]) * p["quantity"] for p in positions)))
@@ -63,8 +65,9 @@ def get_portfolio_value(user_id: str = Depends(get_current_user)):
 
 
 @router.get("/history")
-def get_portfolio_history(user_id: str = Depends(get_current_user)):
-    snapshots_result = supabase.table("portfolio_snapshots").select("*").eq("user_id", user_id).order("snapshot_date").execute()
+async def get_portfolio_history(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    snapshots_result = await supabase.table("portfolio_snapshots").select("*").eq("user_id", user_id).order("snapshot_date").execute()
     snapshots = snapshots_result.data or []
 
     return {
@@ -76,8 +79,9 @@ def get_portfolio_history(user_id: str = Depends(get_current_user)):
 
 
 @router.get("/trades")
-def get_trades(user_id: str = Depends(get_current_user)):
-    result = supabase.table("trades").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+async def get_trades(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    result = await supabase.table("trades").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
     trades = result.data or []
     for t in trades:
         t["price"] = t["price"] / 100
@@ -86,55 +90,54 @@ def get_trades(user_id: str = Depends(get_current_user)):
 
 
 @router.post("/snapshot")
-def save_snapshot(user_id: str = Depends(get_current_user)):
+async def save_snapshot(user_id: str = Depends(get_current_user)):
     from datetime import date
-    total_cents = _compute_total_cents(user_id)
+    supabase = await get_supabase()
+    total_cents = await _compute_total_cents(supabase, user_id)
     today = date.today().isoformat()
-    _upsert_snapshot(user_id, today, total_cents)
+    await _upsert_snapshot(supabase, user_id, today, total_cents)
     return {"snapshot_date": today, "total_value": total_cents / 100}
 
 
 @router.get("/snapshot-all")
-def cron_snapshot_all(request: Request):
-    """Called by Vercel Cron at 21:00 UTC daily."""
+async def cron_snapshot_all(request: Request):
     secret = os.getenv("CRON_SECRET", "")
     if secret and request.headers.get("Authorization") != f"Bearer {secret}":
         raise HTTPException(status_code=401, detail="Unauthorized")
-    snapshot_all_users()
+    await snapshot_all_users()
     return {"ok": True}
 
 
-def snapshot_all_users():
-    """Snapshots every user's portfolio."""
+async def snapshot_all_users():
     from datetime import date
+    supabase = await get_supabase()
     today = date.today().isoformat()
-    users = supabase.table("users").select("id").execute().data or []
+    users = (await supabase.table("users").select("id").execute()).data or []
     for user in users:
         uid = user["id"]
         try:
-            total_cents = _compute_total_cents(uid)
-            _upsert_snapshot(uid, today, total_cents)
+            total_cents = await _compute_total_cents(supabase, uid)
+            await _upsert_snapshot(supabase, uid, today, total_cents)
         except Exception:
-            pass  # don't let one user failure block the rest
+            pass
 
 
-def _compute_total_cents(user_id: str) -> int:
-    user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
+async def _compute_total_cents(supabase, user_id: str) -> int:
+    user_result = await supabase.table("users").select("cash_balance").eq("id", user_id).execute()
     if not user_result.data:
         raise HTTPException(status_code=404, detail="User not found")
     cash_cents = user_result.data[0]["cash_balance"]
-
-    positions = supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute().data or []
+    positions = (await supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute()).data or []
     holdings_cents = int(round(sum(fetch_price_cents(p["ticker"]) * p["quantity"] for p in positions)))
     return cash_cents + holdings_cents
 
 
-def _upsert_snapshot(user_id: str, date_str: str, total_cents: int):
-    existing = supabase.table("portfolio_snapshots").select("id").eq("user_id", user_id).eq("snapshot_date", date_str).execute()
+async def _upsert_snapshot(supabase, user_id: str, date_str: str, total_cents: int):
+    existing = await supabase.table("portfolio_snapshots").select("id").eq("user_id", user_id).eq("snapshot_date", date_str).execute()
     if existing.data:
-        supabase.table("portfolio_snapshots").update({"total_value": total_cents}).eq("id", existing.data[0]["id"]).execute()
+        await supabase.table("portfolio_snapshots").update({"total_value": total_cents}).eq("id", existing.data[0]["id"]).execute()
     else:
-        supabase.table("portfolio_snapshots").insert({
+        await supabase.table("portfolio_snapshots").insert({
             "user_id": user_id,
             "snapshot_date": date_str,
             "total_value": total_cents
@@ -142,13 +145,13 @@ def _upsert_snapshot(user_id: str, date_str: str, total_cents: int):
 
 
 @router.post("/adjust-splits")
-def adjust_splits(user_id: str = Depends(get_current_user)):
-    positions = supabase.table("positions").select("*").eq("user_id", user_id).execute().data or []
+async def adjust_splits(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    positions = (await supabase.table("positions").select("*").eq("user_id", user_id).execute()).data or []
     if not positions:
         return {"adjusted": []}
 
-    # Get earliest trade date per ticker so we only look at splits since then
-    trades = supabase.table("trades").select("ticker, created_at").eq("user_id", user_id).execute().data or []
+    trades = (await supabase.table("trades").select("ticker, created_at").eq("user_id", user_id).execute()).data or []
     earliest: dict[str, str] = {}
     for t in trades:
         ticker = t["ticker"]
@@ -164,16 +167,14 @@ def adjust_splits(user_id: str = Depends(get_current_user)):
                 continue
             since_date = datetime.fromisoformat(since_str.replace("Z", "+00:00")).date()
 
-            splits = yf.Ticker(ticker).splits  # pandas Series indexed by date
+            splits = yf.Ticker(ticker).splits
             if splits.empty:
                 continue
 
-            # Filter splits that occurred after the first trade
             recent_splits = splits[splits.index.date > since_date]
             if recent_splits.empty:
                 continue
 
-            # Compound all split ratios together
             total_ratio = 1.0
             for ratio in recent_splits:
                 total_ratio *= ratio
@@ -184,16 +185,14 @@ def adjust_splits(user_id: str = Depends(get_current_user)):
             new_quantity = pos["quantity"] * total_ratio
             new_avg_cost = int(round(pos["average_cost"] / total_ratio))
 
-            supabase.table("positions").update({
+            await supabase.table("positions").update({
                 "quantity": new_quantity,
                 "average_cost": new_avg_cost,
             }).eq("user_id", user_id).eq("ticker", ticker).execute()
 
-            # Also adjust all historical trade records for this ticker
-            ticker_trades = supabase.table("trades").select("*").eq("user_id", user_id).eq("ticker", ticker).execute().data or []
+            ticker_trades = (await supabase.table("trades").select("*").eq("user_id", user_id).eq("ticker", ticker).execute()).data or []
             for trade in ticker_trades:
                 trade_date = datetime.fromisoformat(trade["created_at"].replace("Z", "+00:00")).date()
-                # Only apply splits that happened after this specific trade
                 trade_splits = splits[splits.index.date > trade_date]
                 if trade_splits.empty:
                     continue
@@ -204,7 +203,7 @@ def adjust_splits(user_id: str = Depends(get_current_user)):
                     continue
                 new_trade_qty = trade["quantity"] * trade_ratio
                 new_trade_price = int(round(trade["price"] / trade_ratio))
-                supabase.table("trades").update({
+                await supabase.table("trades").update({
                     "quantity": new_trade_qty,
                     "price": new_trade_price,
                     "total": int(round(new_trade_qty * new_trade_price)),
@@ -218,32 +217,29 @@ def adjust_splits(user_id: str = Depends(get_current_user)):
 
 
 @router.get("/analytics")
-def get_analytics(user_id: str = Depends(get_current_user)):
+async def get_analytics(user_id: str = Depends(get_current_user)):
     import pandas as pd
 
-    STARTING_CASH = 10_000_000  # $100,000 in cents
+    supabase = await get_supabase()
+    STARTING_CASH = 10_000_000
     RISK_FREE_ANNUAL = 0.05
     RISK_FREE_DAILY = RISK_FREE_ANNUAL / 252
 
-    # Get all trades ordered by date
-    trades_result = supabase.table("trades").select("*").eq("user_id", user_id).order("created_at").execute()
+    trades_result = await supabase.table("trades").select("*").eq("user_id", user_id).order("created_at").execute()
     trades = trades_result.data or []
 
     if not trades:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    # Get user's current cash
-    user_result = supabase.table("users").select("cash_balance").eq("id", user_id).execute()
+    user_result = await supabase.table("users").select("cash_balance").eq("id", user_id).execute()
     cash_cents = user_result.data[0]["cash_balance"] if user_result.data else STARTING_CASH
 
-    # Get current positions
-    positions_result = supabase.table("positions").select("*").eq("user_id", user_id).execute()
+    positions_result = await supabase.table("positions").select("*").eq("user_id", user_id).execute()
     positions = {p["ticker"]: p["quantity"] for p in (positions_result.data or [])}
 
     if not positions:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    # Find the date range: first trade to today
     first_trade_date = trades[0]["created_at"][:10]
     start_date = pd.Timestamp(first_trade_date)
     end_date = pd.Timestamp.today()
@@ -251,11 +247,9 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     if (end_date - start_date).days < 1:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    # Download historical close prices for all held tickers
     tickers = list(positions.keys())
     try:
         raw = yf.download(tickers, start=first_trade_date, auto_adjust=True, progress=False, group_by="ticker")
-        # Always extract Close prices into a flat DataFrame keyed by ticker
         price_df = pd.DataFrame({t: raw[t]["Close"] for t in tickers if t in raw.columns.get_level_values(0)})
         price_df = price_df.ffill().dropna(how="all")
     except Exception:
@@ -264,8 +258,6 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     if price_df.empty or len(price_df) < 2:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    # Build daily portfolio value series:
-    # For simplicity use current holdings * historical prices + current cash
     portfolio_values = []
     for date, row in price_df.iterrows():
         holdings_value = sum(
@@ -278,7 +270,6 @@ def get_analytics(user_id: str = Depends(get_current_user)):
     if len(portfolio_values) < 2:
         return {"sharpe_ratio": None, "annualized_return": None, "volatility": None}
 
-    # Calculate daily returns
     daily_returns = [
         (portfolio_values[i] - portfolio_values[i - 1]) / portfolio_values[i - 1]
         for i in range(1, len(portfolio_values))

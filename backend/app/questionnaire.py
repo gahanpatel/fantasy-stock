@@ -1,17 +1,17 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from app.config import supabase
+from app.config import get_supabase
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/questionnaire", tags=["questionnaire"])
 
 
 class QuestionnaireResponse(BaseModel):
-    risk_tolerance: str        # very_conservative, conservative, moderate, aggressive
-    experience_years: int      # 0, 1, 5, 10
-    time_horizon: str          # short, medium, long
-    portfolio_preference: str  # conservative, balanced, growth, aggressive
-    loss_tolerance: str        # sell, hold, buy, ignore
+    risk_tolerance: str
+    experience_years: int
+    time_horizon: str
+    portfolio_preference: str
+    loss_tolerance: str
 
 
 def calculate_risk_score(r: QuestionnaireResponse) -> int:
@@ -116,30 +116,32 @@ def get_questions():
 
 
 @router.get("/status")
-def get_status(user_id: str = Depends(get_current_user)):
-    result = supabase.table("investor_profiles").select("id").eq("user_id", user_id).execute()
+async def get_status(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    result = await supabase.table("investor_profiles").select("id").eq("user_id", user_id).execute()
     return {"completed": len(result.data) > 0}
 
 
 @router.post("/submit")
-def submit_questionnaire(response: QuestionnaireResponse, user_id: str = Depends(get_current_user)):
+async def submit_questionnaire(response: QuestionnaireResponse, user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
     score    = calculate_risk_score(response)
     strategy = determine_strategy(score, response.experience_years)
     style    = determine_style(response, score)
     summary  = build_profile_summary(score, strategy, style)
 
-    supabase.table("investor_profiles").upsert({
-        "user_id":             user_id,
-        "risk_tolerance":      response.risk_tolerance,
-        "experience_years":    response.experience_years,
-        "time_horizon":        response.time_horizon,
+    await supabase.table("investor_profiles").upsert({
+        "user_id":              user_id,
+        "risk_tolerance":       response.risk_tolerance,
+        "experience_years":     response.experience_years,
+        "time_horizon":         response.time_horizon,
         "portfolio_preference": response.portfolio_preference,
-        "loss_tolerance":      response.loss_tolerance,
-        "risk_score":          score,
-        "strategy":            strategy,
-        "style":               style,
-        "risk_label":          summary["risk_label"],
-        "description":         summary["description"],
+        "loss_tolerance":       response.loss_tolerance,
+        "risk_score":           score,
+        "strategy":             strategy,
+        "style":                style,
+        "risk_label":           summary["risk_label"],
+        "description":          summary["description"],
     }, on_conflict="user_id").execute()
 
     return {
@@ -152,8 +154,9 @@ def submit_questionnaire(response: QuestionnaireResponse, user_id: str = Depends
 
 
 @router.get("/profile")
-def get_profile(user_id: str = Depends(get_current_user)):
-    result = supabase.table("investor_profiles").select("*").eq("user_id", user_id).execute()
+async def get_profile(user_id: str = Depends(get_current_user)):
+    supabase = await get_supabase()
+    result = await supabase.table("investor_profiles").select("*").eq("user_id", user_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Investor profile not found")
     return result.data[0]

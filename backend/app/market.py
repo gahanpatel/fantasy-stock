@@ -3,8 +3,9 @@ import yfinance as yf
 
 router = APIRouter(prefix="/market", tags=["market"])
 
+
 @router.get("/quote/{ticker}")
-def get_quote(ticker: str):
+async def get_quote(ticker: str):
     stock = yf.Ticker(ticker)
     info = stock.info
 
