@@ -10,19 +10,27 @@ router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
 _price_cache: dict[str, tuple[int, float]] = {}
 _PRICE_TTL = 180  # 3 minutes
+_price_hits = 0
+_price_misses = 0
 
 
 def fetch_price_cents(ticker: str) -> int:
+    global _price_hits, _price_misses
     now = time.time()
     if ticker in _price_cache:
         cached_price, ts = _price_cache[ticker]
         if now - ts < _PRICE_TTL:
+            _price_hits += 1
             return cached_price
+    _price_misses += 1
+    t0 = time.perf_counter()
     try:
         price = yf.Ticker(ticker).fast_info.last_price
         price_cents = int(round(price * 100)) if price else 0
     except Exception:
         price_cents = 0
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    print(f"[cache] MISS {ticker} fetch={elapsed_ms:.0f}ms hits={_price_hits} misses={_price_misses} hit_rate={_price_hits/(_price_hits+_price_misses)*100:.0f}%")
     _price_cache[ticker] = (price_cents, now)
     return price_cents
 

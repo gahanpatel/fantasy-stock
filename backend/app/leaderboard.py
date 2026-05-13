@@ -15,7 +15,9 @@ async def get_leaderboard(user_id: str = Depends(get_current_user)):
     global _leaderboard_cache
     now = time.time()
     if _leaderboard_cache and now - _leaderboard_cache[1] < _LEADERBOARD_TTL:
+        print("[cache] leaderboard HIT")
         return _leaderboard_cache[0]
+    t0 = time.perf_counter()
 
     supabase = await get_supabase()
     users_result = await supabase.table("users").select("id, display_name, cash_balance").execute()
@@ -41,6 +43,8 @@ async def get_leaderboard(user_id: str = Depends(get_current_user)):
     for i, entry in enumerate(rankings):
         entry["rank"] = i + 1
 
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    print(f"[cache] leaderboard MISS fetch={elapsed_ms:.0f}ms")
     result = {"leaderboard": rankings}
     _leaderboard_cache = (result, now)
     return result
