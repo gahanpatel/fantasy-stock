@@ -127,7 +127,7 @@ export default function PortfolioPage() {
   function Th({ col, children }: { col: number; children: string }) {
     return (
       <th
-        className={`text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors ${sortCol === col ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+        className={`text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors ${sortCol === col ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
         onClick={() => handleSort(col)}
       >
         {children} {sortCol === col ? (sortAsc ? '↑' : '↓') : '↕'}
@@ -174,7 +174,7 @@ export default function PortfolioPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-800">My Portfolio</h1>
+        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">My Portfolio</h1>
         <p className="text-slate-400 text-sm mt-1">
           {holdings.length} position{holdings.length !== 1 ? 's' : ''} · {pv ? fmt(pv.holdings_value) : '…'} invested · {pv ? fmt(pv.cash) : '…'} cash
         </p>
@@ -208,7 +208,7 @@ export default function PortfolioPage() {
                   : 'text-slate-400',
               },
             ].map(c => (
-              <div key={c.label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+              <div key={c.label} className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{c.label}</p>
                 <p className={`text-2xl font-extrabold ${c.color}`}>{c.value}</p>
                 <p className={`text-sm font-semibold mt-1 ${c.color}`}>{c.change}</p>
@@ -217,12 +217,12 @@ export default function PortfolioPage() {
           </div>
 
           <div className="grid grid-cols-[1fr_240px] gap-4 mb-6">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-              <h2 className="font-bold text-slate-800 mb-4">Portfolio History</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100 mb-4">Portfolio History</h2>
               <Line data={lineData} options={{ responsive: true, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { ticks: { callback: (v: unknown) => '$' + ((v as number) / 1000).toFixed(0) + 'k' } } } }} />
             </div>
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-              <h2 className="font-bold text-slate-800 mb-4">Sector Allocation</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100 mb-4">Sector Allocation</h2>
               {total > 0 ? (
                 <>
                   <Doughnut
@@ -234,7 +234,7 @@ export default function PortfolioPage() {
                       <div key={l} className="flex items-center gap-2 text-xs">
                         <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: SECTOR_COLORS[l] ?? '#e2e8f0' }} />
                         <span className="flex-1 text-slate-400">{l}</span>
-                        <span className="font-bold text-slate-700">{((sectorValues[i] / total) * 100).toFixed(1)}%</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">{((sectorValues[i] / total) * 100).toFixed(1)}%</span>
                       </div>
                     ))}
                   </div>
@@ -245,15 +245,15 @@ export default function PortfolioPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">All Holdings</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100">All Holdings</h2>
             </div>
             {holdings.length === 0 ? (
               <p className="px-5 py-8 text-slate-400 text-sm text-center">No holdings yet.</p>
             ) : (
               <table className="w-full">
-                <thead className="bg-slate-50">
+                <thead className="bg-slate-50 dark:bg-slate-700/50">
                   <tr>
                     <Th col={0}>Ticker</Th>
                     <Th col={1}>Shares</Th>
@@ -267,12 +267,12 @@ export default function PortfolioPage() {
                 </thead>
                 <tbody>
                   {sorted.map(r => (
-                    <tr key={r.ticker} className="border-t border-slate-100 hover:bg-slate-50">
-                      <td className="px-4 py-3 font-bold text-slate-800">{r.ticker}</td>
-                      <td className="px-4 py-3 text-sm">{r.quantity}</td>
-                      <td className="px-4 py-3 text-sm">{fmt(r.average_cost)}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">{fmt(r.current_price)}</td>
-                      <td className="px-4 py-3 text-sm font-bold">{fmt(r.market_value)}</td>
+                    <tr key={r.ticker} className="border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100">{r.ticker}</td>
+                      <td className="px-4 py-3 text-sm dark:text-slate-300">{r.quantity}</td>
+                      <td className="px-4 py-3 text-sm dark:text-slate-300">{fmt(r.average_cost)}</td>
+                      <td className="px-4 py-3 text-sm font-semibold dark:text-slate-200">{fmt(r.current_price)}</td>
+                      <td className="px-4 py-3 text-sm font-bold dark:text-slate-200">{fmt(r.market_value)}</td>
                       <td className={`px-4 py-3 text-sm font-semibold ${r.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                         {r.pnl >= 0 ? '+' : ''}{fmt(r.pnl)}
                       </td>
@@ -293,8 +293,8 @@ export default function PortfolioPage() {
             {/* Sell Modal */}
             {sellModal && (
               <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) setSellModal(null); }}>
-                <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm mx-4">
-                  <h2 className="font-bold text-slate-800 text-lg mb-1">Sell {sellModal.ticker}</h2>
+                <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-xl w-full max-w-sm mx-4">
+                  <h2 className="font-bold text-slate-800 dark:text-slate-100 text-lg mb-1">Sell {sellModal.ticker}</h2>
                   <p className="text-xs text-slate-400 mb-4">You own {sellModal.quantity} share{sellModal.quantity !== 1 ? 's' : ''} · current price {fmt(sellModal.current_price)}</p>
 
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Shares to sell</label>
@@ -303,22 +303,22 @@ export default function PortfolioPage() {
                     value={sellShares}
                     onChange={e => setSellShares(e.target.value)}
                     placeholder="0"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-red-400 mb-3"
+                    className="w-full border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-red-400 mb-3"
                     autoFocus
                   />
 
                   <div className="grid grid-cols-4 gap-2 mb-4">
                     {[0.25, 0.5, 0.75, 1].map(f => (
                       <button key={f} onClick={() => setSellShares(String(Math.max(1, Math.floor(sellModal.quantity * f))))}
-                        className="py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
+                        className="py-1.5 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-300 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
                         {f === 1 ? 'All' : `${f * 100}%`}
                       </button>
                     ))}
                   </div>
 
                   {sellShares && parseFloat(sellShares) > 0 && (
-                    <div className="bg-slate-50 rounded-xl p-3 mb-4 text-sm border border-slate-100">
-                      <div className="flex justify-between py-0.5"><span className="text-slate-400">Proceeds</span><span className="font-bold">{fmt(parseFloat(sellShares) * sellModal.current_price)}</span></div>
+                    <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-3 mb-4 text-sm border border-slate-100 dark:border-slate-600">
+                      <div className="flex justify-between py-0.5"><span className="text-slate-400">Proceeds</span><span className="font-bold dark:text-slate-100">{fmt(parseFloat(sellShares) * sellModal.current_price)}</span></div>
                     </div>
                   )}
 
@@ -329,7 +329,7 @@ export default function PortfolioPage() {
                   )}
 
                   <div className="flex gap-2">
-                    <button onClick={() => setSellModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">Cancel</button>
+                    <button onClick={() => setSellModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-bold text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Cancel</button>
                     <button onClick={submitSell} disabled={selling} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
                       {selling ? 'Selling…' : 'Confirm Sell'}
                     </button>

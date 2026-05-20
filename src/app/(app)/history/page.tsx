@@ -67,7 +67,7 @@ export default function HistoryPage() {
     return (
       <th
         onClick={() => handleSort(col)}
-        className={`text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors ${sortCol === col ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+        className={`text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider cursor-pointer select-none transition-colors ${sortCol === col ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
       >
         {children} {sortCol === col ? (sortAsc ? '↑' : '↓') : '↕'}
       </th>
@@ -80,7 +80,7 @@ export default function HistoryPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-800">Transaction History</h1>
+        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Transaction History</h1>
         <p className="text-slate-400 text-sm mt-1">All your trades since account creation</p>
       </div>
 
@@ -95,33 +95,33 @@ export default function HistoryPage() {
       )}
 
       <div className="grid grid-cols-3 gap-4 mb-5">
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Total Trades</p>
-          <p className="text-2xl font-extrabold text-slate-800">{filtered.length}</p>
+          <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{filtered.length}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Total Bought</p>
-          <p className="text-2xl font-extrabold text-slate-800">{fmt(totalBuys)}</p>
+          <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{fmt(totalBuys)}</p>
         </div>
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Total Sold</p>
-          <p className="text-2xl font-extrabold text-slate-800">{fmt(totalSells)}</p>
+          <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">{fmt(totalSells)}</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 flex-wrap">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100 dark:border-slate-700 flex-wrap">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filter:</span>
-          <select value={filterSide} onChange={e => setFilterSide(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
+          <select value={filterSide} onChange={e => setFilterSide(e.target.value)} className="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
             <option value="all">All Trades</option>
             <option value="buy">Buys Only</option>
             <option value="sell">Sells Only</option>
           </select>
-          <select value={filterTicker} onChange={e => setFilterTicker(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
+          <select value={filterTicker} onChange={e => setFilterTicker(e.target.value)} className="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
             <option value="all">All Tickers</option>
             {allTickers.map(t => <option key={t}>{t}</option>)}
           </select>
-          <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)} className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
+          <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)} className="border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 text-sm outline-none cursor-pointer focus:border-indigo-500">
             <option value="all">All Time</option>
             <option value="30">Last 30 Days</option>
             <option value="7">Last 7 Days</option>
@@ -133,7 +133,7 @@ export default function HistoryPage() {
           <p className="px-5 py-8 text-center text-slate-400 text-sm">Loading…</p>
         ) : (
           <table className="w-full">
-            <thead className="bg-slate-50">
+            <thead className="bg-slate-50 dark:bg-slate-700/50">
               <tr>
                 <Th col={0}>Date</Th>
                 <Th col={1}>Ticker</Th>
@@ -147,17 +147,17 @@ export default function HistoryPage() {
               {sorted.length === 0 ? (
                 <tr><td colSpan={6} className="px-5 py-8 text-center text-slate-400 text-sm">No trades match your filters.</td></tr>
               ) : sorted.map(t => (
-                <tr key={t.id} className="border-t border-slate-100 hover:bg-slate-50">
+                <tr key={t.id} className="border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
                   <td className="px-4 py-3 text-xs text-slate-400">{new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                  <td className="px-4 py-3 font-bold text-slate-800 text-sm">{t.ticker}</td>
+                  <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 text-sm">{t.ticker}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${t.side === 'buy' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                       {t.side === 'buy' ? 'Buy' : 'Sell'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm">{t.quantity}</td>
-                  <td className="px-4 py-3 text-sm font-semibold">{fmt(t.price)}</td>
-                  <td className="px-4 py-3 text-sm font-bold">{fmt(t.total)}</td>
+                  <td className="px-4 py-3 text-sm dark:text-slate-300">{t.quantity}</td>
+                  <td className="px-4 py-3 text-sm font-semibold dark:text-slate-200">{fmt(t.price)}</td>
+                  <td className="px-4 py-3 text-sm font-bold dark:text-slate-200">{fmt(t.total)}</td>
                 </tr>
               ))}
             </tbody>

@@ -15,9 +15,9 @@ function StatCard({ label, value, change, sub, changeColor }: {
   label: string; value: string; change: string; sub?: string; changeColor?: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
       <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{label}</p>
-      <p className="text-2xl font-extrabold text-slate-800 leading-tight">{value}</p>
+      <p className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 leading-tight">{value}</p>
       <p className={`text-sm font-semibold mt-1.5 ${changeColor ?? 'text-slate-400'}`}>{change}</p>
       {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
     </div>
@@ -92,10 +92,10 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-800">Dashboard</h1>
+        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Dashboard</h1>
         <p className="text-slate-400 text-sm mt-1">
           Welcome back, {user?.name ?? '…'}
-          {lastUpdated && <span className="ml-2 text-xs text-slate-300">· Live prices as of {lastUpdated.toLocaleTimeString()}</span>}
+          {lastUpdated && <span className="ml-2 text-xs text-slate-300 dark:text-slate-500">· Live prices as of {lastUpdated.toLocaleTimeString()}</span>}
         </p>
       </div>
 
@@ -142,9 +142,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-[1fr_280px] gap-4">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-                <h2 className="font-bold text-slate-800">Top Holdings</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h2 className="font-bold text-slate-800 dark:text-slate-100">Top Holdings</h2>
                 <Link href="/portfolio" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View all →</Link>
               </div>
               {holdings.length === 0 ? (
@@ -152,7 +152,7 @@ export default function DashboardPage() {
               ) : (
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-50">
+                    <tr className="bg-slate-50 dark:bg-slate-700/50">
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Stock</th>
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Shares</th>
                       <th className="text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-400">Live Price</th>
@@ -162,11 +162,11 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {holdings.slice(0, 5).map(h => (
-                      <tr key={h.ticker} className="border-t border-slate-100 hover:bg-slate-50">
-                        <td className="px-4 py-3 font-bold text-slate-800">{h.ticker}</td>
-                        <td className="px-4 py-3 text-sm">{h.quantity}</td>
-                        <td className="px-4 py-3 text-sm font-semibold">{fmt(h.current_price)}</td>
-                        <td className="px-4 py-3 text-sm font-semibold">{fmt(h.market_value)}</td>
+                      <tr key={h.ticker} className="border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                        <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100">{h.ticker}</td>
+                        <td className="px-4 py-3 text-sm dark:text-slate-300">{h.quantity}</td>
+                        <td className="px-4 py-3 text-sm font-semibold dark:text-slate-200">{fmt(h.current_price)}</td>
+                        <td className="px-4 py-3 text-sm font-semibold dark:text-slate-200">{fmt(h.market_value)}</td>
                         <td className={`px-4 py-3 text-sm font-semibold ${h.pnl >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                           {h.pnl >= 0 ? '▲' : '▼'} {fmt(Math.abs(h.pnl))}
                           <span className="text-xs ml-1">({fmtPct(h.pnl_percent)})</span>
@@ -178,9 +178,9 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100">
-                <h2 className="font-bold text-slate-800">🏆 Leaderboard</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+                <h2 className="font-bold text-slate-800 dark:text-slate-100">🏆 Leaderboard</h2>
                 <Link href="/leaderboard" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">Full →</Link>
               </div>
               {leaderboard.slice(0, 7).map((p, i) => {
@@ -188,11 +188,11 @@ export default function DashboardPage() {
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
                 const ret = ((p.total_value - STARTING_CASH) / STARTING_CASH) * 100;
                 return (
-                  <div key={p.user_id} className={`flex items-center gap-3 px-5 py-3 border-t border-slate-100 ${isMe ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}>
+                  <div key={p.user_id} className={`flex items-center gap-3 px-5 py-3 border-t border-slate-100 dark:border-slate-700 ${isMe ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
                     <span className={`w-6 text-center font-extrabold text-sm ${i < 3 ? '' : 'text-slate-400'}`}>
                       {medal ?? i + 1}
                     </span>
-                    <span className="flex-1 text-sm font-semibold text-slate-700">
+                    <span className="flex-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
                       {p.display_name}{isMe && <span className="ml-1 text-xs text-indigo-500">(you)</span>}
                     </span>
                     <span className={`text-sm font-bold ${ret >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>

@@ -54,7 +54,7 @@ export default function LeaderboardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-800">Leaderboard</h1>
+        <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">Leaderboard</h1>
         <p className="text-slate-400 text-sm mt-1">Season standings · Live portfolio values</p>
       </div>
 
@@ -63,12 +63,12 @@ export default function LeaderboardPage() {
       ) : (
         <div className="grid grid-cols-[1fr_280px] gap-5">
           {/* Rankings Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100">
-              <h2 className="font-bold text-slate-800">Season Rankings</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100">Season Rankings</h2>
             </div>
 
-            <div className="flex items-center px-5 py-2.5 border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-400 gap-3">
+            <div className="flex items-center px-5 py-2.5 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-xs font-bold uppercase tracking-wider text-slate-400 gap-3">
               <span className="w-7">#</span>
               <span className="flex-1">Player</span>
               <span className="w-28 text-right">Portfolio Value</span>
@@ -80,14 +80,14 @@ export default function LeaderboardPage() {
               const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
               const ret = ((p.total_value - STARTING_CASH) / STARTING_CASH) * 100;
               return (
-                <div key={p.user_id} className={`flex items-center px-5 py-3.5 border-t border-slate-100 gap-3 ${isMe ? 'bg-indigo-50' : 'hover:bg-slate-50'}`}>
+                <div key={p.user_id} className={`flex items-center px-5 py-3.5 border-t border-slate-100 dark:border-slate-700 gap-3 ${isMe ? 'bg-indigo-50 dark:bg-indigo-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}>
                   <span className="w-7 text-center font-extrabold text-sm">{medal ?? <span className="text-slate-400">{i + 1}</span>}</span>
                   <div className="flex-1">
-                    <span className="font-semibold text-sm text-slate-800">{p.display_name}</span>
+                    <span className="font-semibold text-sm text-slate-800 dark:text-slate-100">{p.display_name}</span>
                     {isMe && <span className="ml-1.5 text-xs text-indigo-500">(you)</span>}
                   </div>
                   <div className="w-28 text-right">
-                    <p className="text-sm font-bold text-slate-700">{fmt(p.total_value)}</p>
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{fmt(p.total_value)}</p>
                     <p className="text-xs text-slate-400">Total value</p>
                   </div>
                   <div className="w-24 text-right">
@@ -102,8 +102,8 @@ export default function LeaderboardPage() {
           {/* Right column */}
           <div className="flex flex-col gap-4">
             {/* Bar chart */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-              <h2 className="font-bold text-slate-800 mb-4">Return Distribution</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700">
+              <h2 className="font-bold text-slate-800 dark:text-slate-100 mb-4">Return Distribution</h2>
               {leaderboard.length > 0 && <Bar data={barData} options={barOptions} />}
             </div>
           </div>

@@ -18,6 +18,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [rank, setRank] = useState<number | null>(null);
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  function toggleDark() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    try { localStorage.setItem('tt_dark', next ? '1' : '0'); } catch (_) {}
+  }
 
   useEffect(() => {
     if (!user?.name) return;
@@ -70,12 +82,21 @@ export default function Sidebar() {
             <p className="text-slate-400 text-xs">{rank !== null ? `Rank #${rank}` : '—'}</p>
           </div>
         </div>
-        <button
-          onClick={logout}
-          className="text-slate-500 hover:text-red-400 text-xs transition-colors"
-        >
-          ← Log out
-        </button>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={logout}
+            className="text-slate-500 hover:text-red-400 text-xs transition-colors"
+          >
+            ← Log out
+          </button>
+          <button
+            onClick={toggleDark}
+            className="text-slate-400 hover:text-white text-sm transition-colors"
+            title={dark ? 'Light mode' : 'Dark mode'}
+          >
+            {dark ? '☀️' : '🌙'}
+          </button>
+        </div>
       </div>
     </aside>
   );
