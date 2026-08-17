@@ -2,7 +2,7 @@ import time
 from fastapi import APIRouter, Depends
 from app.config import get_supabase
 from app.auth import get_current_user
-from app.portfolio import fetch_price_cents
+from app.portfolio import fetch_prices_cents
 
 router = APIRouter(prefix="/leaderboard", tags=["leaderboard"])
 
@@ -22,18 +22,30 @@ async def get_leaderboard(user_id: str = Depends(get_current_user)):
     supabase = await get_supabase()
     users_result = await supabase.table("users").select("id, display_name, cash_balance").execute()
     TEST_NAMES = {"test", "api test", "apitest"}
-    users = [u for u in (users_result.data or []) if u.get("display_name", "").strip().lower() not in TEST_NAMES]
+    # display_name is nullable, so coalesce before comparing — .get()'s default
+    # does not apply when the key is present with a None value.
+    users = [
+        u for u in (users_result.data or [])
+        if (u.get("display_name") or "").strip().lower() not in TEST_NAMES
+    ]
+
+    # One query for every position, then one concurrent price batch. Fetching
+    # per user serially blew past Vercel's function timeout.
+    all_positions = (await supabase.table("positions").select("user_id, ticker, quantity").execute()).data or []
+    positions_by_user: dict[str, list[dict]] = {}
+    for p in all_positions:
+        positions_by_user.setdefault(p["user_id"], []).append(p)
+    prices = await fetch_prices_cents(p["ticker"] for p in all_positions)
 
     rankings = []
     for user in users:
-        positions_result = await supabase.table("positions").select("ticker, quantity").eq("user_id", user["id"]).execute()
-        positions = positions_result.data or []
-        holdings_cents = int(round(sum(fetch_price_cents(p["ticker"]) * p["quantity"] for p in positions)))
+        positions = positions_by_user.get(user["id"], [])
+        holdings_cents = int(round(sum(prices.get(p["ticker"], 0) * p["quantity"] for p in positions)))
         total_cents = user["cash_balance"] + holdings_cents
 
         rankings.append({
             "user_id": user["id"],
-            "display_name": user["display_name"],
+            "display_name": user["display_name"] or "Unnamed player",
             "cash_balance": user["cash_balance"] / 100,
             "holdings_value": holdings_cents / 100,
             "total_value": total_cents / 100

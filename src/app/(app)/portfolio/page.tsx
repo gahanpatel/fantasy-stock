@@ -51,6 +51,7 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortAsc, setSortAsc] = useState(false);
   const [sellModal, setSellModal] = useState<Holding | null>(null);
@@ -92,22 +93,28 @@ export default function PortfolioPage() {
   }
 
   useEffect(() => {
-    // Fire-and-forget — don't block data fetching on split adjustment
-    apiFetch('/portfolio/adjust-splits', { method: 'POST' }).catch(() => null);
-
+    // NOTE: /portfolio/adjust-splits is deliberately NOT called here. It has no
+    // record of having already run, so every page load re-applied the same split
+    // ratio and compounded share counts (2x -> 4x -> 8x). Trigger it manually.
     Promise.all([
       apiFetch<{ holdings: Holding[] }>('/portfolio/holdings'),
       apiFetch<PortfolioValue>('/portfolio/value'),
       apiFetch<{ history: HistoryEntry[] }>('/portfolio/history'),
-      apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
-    ]).then(([h, v, hist, a]) => {
+    ]).then(([h, v, hist]) => {
       setHoldings(h.holdings);
       setPv(v);
       setHistory(hist.history);
-      setAnalytics(a);
     }).catch(() => {
       setError('Could not reach the server. Your data is safe — Railway or Supabase may be temporarily offline.');
     }).finally(() => setLoading(false));
+
+    // Fetched separately, not in the Promise.all above: /portfolio/analytics runs
+    // an uncached yf.download, and holding the page's loading state open for it
+    // hid holdings and cash that were already available in under a second.
+    apiFetch<Analytics>('/portfolio/analytics')
+      .then(setAnalytics)
+      .catch(() => setAnalytics(null))
+      .finally(() => setAnalyticsLoading(false));
   }, []);
 
   function handleSort(col: number) {
@@ -201,9 +208,11 @@ export default function PortfolioPage() {
               { label: 'Cash Balance',   value: pv ? fmt(pv.cash) : '—',         change: 'Available to invest',                                                             color: 'text-slate-400' },
               {
                 label: 'Sharpe Ratio',
-                value: analytics?.sharpe_ratio !== null && analytics?.sharpe_ratio !== undefined ? analytics.sharpe_ratio.toFixed(2) : '—',
+                // '…' while pending so the tile doesn't show '—' and then visibly
+                // flip to a number once the analytics request lands.
+                value: analyticsLoading ? '…' : analytics?.sharpe_ratio != null ? analytics.sharpe_ratio.toFixed(2) : '—',
                 change: 'Risk-adjusted return',
-                color: analytics?.sharpe_ratio !== null && analytics?.sharpe_ratio !== undefined
+                color: !analyticsLoading && analytics?.sharpe_ratio != null
                   ? analytics.sharpe_ratio >= 1 ? 'text-emerald-500' : analytics.sharpe_ratio >= 0 ? 'text-yellow-500' : 'text-red-500'
                   : 'text-slate-400',
               },

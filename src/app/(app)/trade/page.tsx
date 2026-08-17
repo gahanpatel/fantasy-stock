@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { STOCKS, fmt, fmtPct } from '@/lib/data';
+import { STOCKS, MOVERS_WATCHLIST, fmt, fmtPct } from '@/lib/data';
+
+const MOVERS = STOCKS.filter(s => MOVERS_WATCHLIST.includes(s.ticker));
 import { apiFetch } from '@/lib/api';
 
 interface Quote {
@@ -39,6 +41,7 @@ export default function TradePage() {
   const [selectedHolding, setSelectedHolding] = useState<Holding | null>(null);
   const [sellShares, setSellShares] = useState('');
   const [sellFeedback, setSellFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [moversLoaded, setMoversLoaded] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,9 +50,9 @@ export default function TradePage() {
       apiFetch<{ holdings: Holding[] }>('/portfolio/holdings').then(h => setHoldings(h.holdings)),
     ]).catch(console.error);
     (async () => {
-      const batchSize = 5;
-      for (let i = 0; i < STOCKS.length; i += batchSize) {
-        await Promise.all(STOCKS.slice(i, i + batchSize).map(async s => {
+      const batchSize = 8;
+      for (let i = 0; i < MOVERS.length; i += batchSize) {
+        await Promise.all(MOVERS.slice(i, i + batchSize).map(async s => {
           try {
             const res = await fetch(`/api/quote/${s.ticker}`, { cache: 'no-store' });
             if (!res.ok) return;
@@ -57,8 +60,9 @@ export default function TradePage() {
             if (!data.error) setLiveData(prev => ({ ...prev, [s.ticker]: { price: data.price, change_percent: data.change_percent } }));
           } catch { /* silently skip */ }
         }));
-        if (i + batchSize < STOCKS.length) await new Promise(r => setTimeout(r, 300));
+        if (i + batchSize < MOVERS.length) await new Promise(r => setTimeout(r, 250));
       }
+      setMoversLoaded(true);
     })();
   }, []);
 
@@ -79,8 +83,13 @@ export default function TradePage() {
     });
   })();
 
-  const topGainers = [...STOCKS]
-    .sort((a, b) => (liveData[b.ticker]?.change_percent ?? b.chg) - (liveData[a.ticker]?.change_percent ?? a.chg))
+  // Rank only symbols we actually have a live quote for. STOCKS seeds price/chg
+  // to 0, so including un-quoted rows rendered "$0.00 / +0.00%" and made the sort
+  // meaningless until every request had landed.
+  const topGainers = MOVERS
+    .map(stock => ({ stock, live: liveData[stock.ticker] }))
+    .filter((row): row is { stock: typeof MOVERS[number]; live: { price: number; change_percent: number } } => !!row.live)
+    .sort((a, b) => b.live.change_percent - a.live.change_percent)
     .slice(0, 10);
 
   async function selectStock(ticker: string, name: string) {
@@ -375,7 +384,7 @@ export default function TradePage() {
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
             <div className="flex justify-between items-center px-5 py-4 border-b border-slate-100 dark:border-slate-700 flex-shrink-0">
               <h2 className="font-bold text-slate-800 dark:text-slate-100">Top Gainers</h2>
-              <span className="text-xs text-slate-400">Top 10 by % change today · click to select</span>
+              <span className="text-xs text-slate-400">Top 10 of {MOVERS.length} tracked names by % change today · click to select</span>
             </div>
             <div className="overflow-y-auto flex-1">
               <table className="w-full">
@@ -387,7 +396,13 @@ export default function TradePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {topGainers.map(s => (
+                  {topGainers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">
+                        {moversLoaded ? 'Live quotes unavailable right now.' : 'Loading live quotes…'}
+                      </td>
+                    </tr>
+                  ) : topGainers.map(({ stock: s, live }) => (
                     <tr key={s.ticker}
                       onClick={() => { setMode('buy'); selectStock(s.ticker, s.name); }}
                       className={`border-t border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer ${selected?.ticker === s.ticker ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}
@@ -395,9 +410,9 @@ export default function TradePage() {
                       <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-100 text-sm">{s.ticker}</td>
                       <td className="px-4 py-3 text-xs text-slate-400">{s.name}</td>
                       <td className="px-4 py-3 text-xs text-slate-400">{s.sector}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200">{fmt(liveData[s.ticker]?.price ?? s.price)}</td>
-                      <td className={`px-4 py-3 text-sm font-semibold ${(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                        {(liveData[s.ticker]?.change_percent ?? s.chg) >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(liveData[s.ticker]?.change_percent ?? s.chg))}
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200">{fmt(live.price)}</td>
+                      <td className={`px-4 py-3 text-sm font-semibold ${live.change_percent >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                        {live.change_percent >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(live.change_percent))}
                       </td>
                     </tr>
                   ))}

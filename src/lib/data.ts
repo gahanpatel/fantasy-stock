@@ -514,6 +514,31 @@ export const STOCKS: Stock[] = [
   { ticker: 'ARKK',  name: 'ARK Innovation ETF',              price: 0, chg: 0, sector: 'ETF',                    vol: '' },
 ];
 
+/**
+ * Tickers quoted on the Trade page for the "Top Movers" table.
+ *
+ * Deliberately a small watchlist, not all of STOCKS: quoting every symbol meant
+ * ~499 requests per page load (batched 5 at a time), which took over 30s and got
+ * rate-limited by Yahoo long before finishing. Search still covers all of STOCKS
+ * — those quotes are fetched on demand when a symbol is selected.
+ */
+export const MOVERS_WATCHLIST: string[] = [
+  // Mega-cap tech
+  'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AVGO', 'ORCL', 'CRM',
+  'AMD', 'ADBE', 'INTC', 'CSCO', 'QCOM', 'MU', 'NFLX', 'PLTR',
+  // Financials
+  'JPM', 'V', 'MA', 'GS', 'MS',
+  // Health care
+  'UNH', 'JNJ', 'ABBV', 'PFE', 'MRK', 'LLY',
+  // Consumer & industrials
+  'WMT', 'PG', 'HD', 'COST', 'PEP', 'KO', 'DIS', 'BA', 'CAT',
+  'ABNB', 'DASH', 'UBER', 'CVNA', 'COIN',
+  // Energy & telecom
+  'XOM', 'CVX', 'T', 'VZ',
+  // ETFs
+  'SPY', 'QQQ', 'IWM', 'DIA', 'GLD', 'XLF', 'XLK', 'XLE', 'ARKK',
+];
+
 export function fmt(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

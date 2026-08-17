@@ -7,6 +7,8 @@ interface User { name: string; email: string; token: string }
 
 interface AuthContextType {
   user: User | null;
+  /** True until the stored session has been read. `user` is meaningless before this is false. */
+  initializing: boolean;
   login: (email: string, password: string) => Promise<string | null>;
   register: (name: string, email: string, password: string) => Promise<string | null>;
   logout: () => void;
@@ -16,10 +18,20 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  // The session lives in localStorage, which is unavailable during prerender, so
+  // it can only be read in an effect. Consumers must wait for this to flip before
+  // treating a null `user` as "signed out" — otherwise route guards fire against
+  // the pre-hydration null and bounce signed-in users to /login.
+  const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
-    const saved = localStorage.getItem('tt_session');
-    if (saved) setUser(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('tt_session');
+      if (saved) setUser(JSON.parse(saved));
+    } catch {
+      localStorage.removeItem('tt_session'); // corrupt entry — don't crash the app
+    }
+    setInitializing(false);
   }, []);
 
   async function login(email: string, password: string): Promise<string | null> {
@@ -54,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('tt_session');
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, initializing, login, register, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

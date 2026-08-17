@@ -67,15 +67,18 @@ export default function QuestionnairePage() {
         portfolio_preference: answers['portfolio_preference'],
         loss_tolerance:       answers['loss_tolerance'],
       };
-      const [res, analyticsRes] = await Promise.all([
-        apiFetch<ProfileResult>('/questionnaire/submit', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        }),
-        apiFetch<Analytics>('/portfolio/analytics').catch(() => null),
-      ]);
+      const res = await apiFetch<ProfileResult>('/questionnaire/submit', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
       setResult(res);
-      setAnalytics(analyticsRes);
+
+      // Not awaited alongside the submit: /portfolio/analytics runs an uncached
+      // yf.download, and making the profile result wait on it stalled the screen
+      // the user is actually here to see. The stats block fills in when it lands.
+      apiFetch<Analytics>('/portfolio/analytics')
+        .then(setAnalytics)
+        .catch(() => setAnalytics(null));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Submission failed');
     } finally {

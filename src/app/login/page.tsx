@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
-  const { user, login, register } = useAuth();
+  const { user, initializing, login, register } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
@@ -20,25 +20,34 @@ export default function LoginPage() {
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
 
+  // Set once the user submits, so the auto-redirect below doesn't race the
+  // explicit navigation in the handlers (registration goes to /questionnaire,
+  // not /dashboard).
+  const submitted = useRef(false);
+
   useEffect(() => {
+    if (initializing || submitted.current) return;
+    // Only bounce visitors who were already signed in when they landed here.
     if (user) router.replace('/dashboard');
-  }, [user, router]);
+  }, [user, initializing, router]);
 
   async function handleLogin(e: React.SyntheticEvent) {
     e.preventDefault();
+    submitted.current = true;
     setLoading(true);
     setError('');
     const err = await login(loginEmail, loginPass);
-    if (err) { setError(err); setLoading(false); }
+    if (err) { setError(err); setLoading(false); submitted.current = false; }
     else router.push('/dashboard');
   }
 
   async function handleRegister(e: React.SyntheticEvent) {
     e.preventDefault();
+    submitted.current = true;
     setLoading(true);
     setError('');
     const err = await register(regName, regEmail, regPass);
-    if (err) { setError(err); setLoading(false); }
+    if (err) { setError(err); setLoading(false); submitted.current = false; }
     else router.push('/questionnaire');
   }
 

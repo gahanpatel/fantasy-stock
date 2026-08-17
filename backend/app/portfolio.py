@@ -1,5 +1,7 @@
+import asyncio
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from fastapi import APIRouter, HTTPException, Depends, Request
 from app.config import get_supabase
 from app.auth import get_current_user
@@ -12,6 +14,7 @@ _price_cache: dict[str, tuple[int, float]] = {}
 _PRICE_TTL = 180  # 3 minutes
 _price_hits = 0
 _price_misses = 0
+_MAX_PRICE_WORKERS = 16
 
 
 def fetch_price_cents(ticker: str) -> int:
@@ -35,15 +38,44 @@ def fetch_price_cents(ticker: str) -> int:
     return price_cents
 
 
+async def fetch_prices_cents(tickers) -> dict[str, int]:
+    """Resolve many tickers at once.
+
+    Cache hits return immediately; misses are fetched concurrently in threads so
+    N tickers cost roughly one round trip instead of N sequential ones. yfinance
+    is blocking, so fetching it inline would also stall the event loop.
+    """
+    now = time.time()
+    prices: dict[str, int] = {}
+    missing: list[str] = []
+    for ticker in dict.fromkeys(tickers):  # dedupe, preserve order
+        cached = _price_cache.get(ticker)
+        if cached and now - cached[1] < _PRICE_TTL:
+            prices[ticker] = cached[0]
+        else:
+            missing.append(ticker)
+
+    if missing:
+        loop = asyncio.get_running_loop()
+        with ThreadPoolExecutor(max_workers=min(_MAX_PRICE_WORKERS, len(missing))) as pool:
+            fetched = await asyncio.gather(
+                *(loop.run_in_executor(pool, fetch_price_cents, t) for t in missing)
+            )
+        prices.update(zip(missing, fetched))
+
+    return prices
+
+
 @router.get("/holdings")
 async def get_holdings(user_id: str = Depends(get_current_user)):
     supabase = await get_supabase()
     positions_result = await supabase.table("positions").select("*").eq("user_id", user_id).execute()
     positions = positions_result.data or []
+    prices = await fetch_prices_cents(p["ticker"] for p in positions)
 
     holdings = []
     for pos in positions:
-        price_cents = fetch_price_cents(pos["ticker"])
+        price_cents = prices.get(pos["ticker"], 0)
         market_value_cents = int(round(price_cents * pos["quantity"]))
         cost_basis_cents = int(round(pos["average_cost"] * pos["quantity"]))
         pnl_cents = market_value_cents - cost_basis_cents
@@ -73,7 +105,8 @@ async def get_portfolio_value(user_id: str = Depends(get_current_user)):
     positions_result = await supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute()
     positions = positions_result.data or []
 
-    holdings_cents = int(round(sum(fetch_price_cents(p["ticker"]) * p["quantity"] for p in positions)))
+    prices = await fetch_prices_cents(p["ticker"] for p in positions)
+    holdings_cents = int(round(sum(prices.get(p["ticker"], 0) * p["quantity"] for p in positions)))
     total_cents = cash_cents + holdings_cents
 
     return {
@@ -147,7 +180,8 @@ async def _compute_total_cents(supabase, user_id: str) -> int:
         raise HTTPException(status_code=404, detail="User not found")
     cash_cents = user_result.data[0]["cash_balance"]
     positions = (await supabase.table("positions").select("ticker, quantity").eq("user_id", user_id).execute()).data or []
-    holdings_cents = int(round(sum(fetch_price_cents(p["ticker"]) * p["quantity"] for p in positions)))
+    prices = await fetch_prices_cents(p["ticker"] for p in positions)
+    holdings_cents = int(round(sum(prices.get(p["ticker"], 0) * p["quantity"] for p in positions)))
     return cash_cents + holdings_cents
 
 
